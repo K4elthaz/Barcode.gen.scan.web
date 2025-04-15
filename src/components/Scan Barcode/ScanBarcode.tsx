@@ -5,27 +5,42 @@ import { BarcodeScanner } from "./ScannerComponents/barcode-scanner"
 import { ScannedItemsTable } from "./ScannerComponents/scanned-items-table"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-
-export type ScannedItem = {
-  id: string
-  barcode: string
-  timestamp: Date
-}
+import { InventoryItem } from "@/lib/types"
+import { ref, onValue, query, orderByChild, equalTo } from "firebase/database"
+import { database } from "@/lib/firebase"
 
 export default function Home() {
-  const [scannedItems, setScannedItems] = useState<ScannedItem[]>([])
+  const [scannedItems, setScannedItems] = useState<(InventoryItem & { timestamp: Date })[]>([])
   const [isScanning, setIsScanning] = useState(false)
 
   const handleScan = (barcode: string) => {
-    if (barcode) {
-      const newItem: ScannedItem = {
-        id: crypto.randomUUID(),
-        barcode,
-        timestamp: new Date(),
+    if (!barcode) return
+  
+    const itemsRef = ref(database, "Items") // Make sure this path matches your DB structure
+    const itemsQuery = query(itemsRef, orderByChild("barcodeId"), equalTo(barcode))
+  
+    onValue(itemsQuery, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val()
+        const itemKey = Object.keys(data)[0]
+        const itemData = data[itemKey]
+  
+        const newItem: InventoryItem & { timestamp: Date } = {
+          ...itemData,
+          id: crypto.randomUUID(),
+          timestamp: new Date(),
+        }
+        
+  
+        setScannedItems((prev) => [newItem, ...prev])
+      } else {
+        alert("Item not found for scanned barcode.")
       }
-      setScannedItems((prev) => [newItem, ...prev])
+  
       setIsScanning(false)
-    }
+    }, {
+      onlyOnce: true
+    })
   }
 
   const handleDelete = (id: string) => {
