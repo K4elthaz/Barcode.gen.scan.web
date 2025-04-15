@@ -1,9 +1,6 @@
-"use client"
-
-import type React from "react"
-
-import { useState } from "react"
-import { v4 as uuidv4 } from "uuid"
+import type React from 'react'
+import { useState } from 'react'
+import { v4 as uuidv4 } from 'uuid'
 import {
   Dialog,
   DialogContent,
@@ -11,117 +8,213 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { BarcodeDisplay } from "./barcode-display"
-import type { InventoryItem } from "@/lib/types"
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { BarcodeDisplay } from './barcode-display'
+import { ref, push, set } from 'firebase/database'
+import { database } from '@/lib/firebase'
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 
 interface AddItemDialogProps {
   open: boolean
   setOpen: (open: boolean) => void
-  onAddItem: (item: InventoryItem) => void
+  onAddItem?: (item: any) => void
 }
 
-export function AddItemDialog({ open, setOpen, onAddItem }: AddItemDialogProps) {
+export function AddItemDialog({
+  open,
+  setOpen,
+  onAddItem,
+}: AddItemDialogProps) {
   const [formData, setFormData] = useState({
-    name: "",
-    sku: "",
-    category: "",
+    productName: '',
+    description: '',
+    category: '',
+    unitMeasure: '',
+    purchasePrice: '',
+    sellingPrice: '',
     quantity: 0,
-    price: 0,
-    supplier: "",
-    location: "",
-    minStockLevel: 0,
+    supplierInfo: '',
+    itemImg: '',
+    sku: '',
+    barcodeId: '',
+    barcodeImg: '',
+    status: '',
   })
 
-  // Generate a barcode based on UUID
-  const [barcode, setBarcode] = useState("")
+  const [barcode, setBarcode] = useState('')
 
-  const generateBarcode = () => {
-    // Generate a UUID and use part of it for the barcode
-    // Real barcodes would follow specific formats, but this is a simplified example
-    const uuid = uuidv4()
-    const numericPart = uuid.replace(/[^0-9]/g, "").substring(0, 13)
-    setBarcode(numericPart)
-  }
-
+  const generateBarcode = async (): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const uuid = uuidv4();
+      const numericPart = uuid.replace(/[^0-9]/g, '').substring(0, 13);
+      setBarcode(numericPart);
+      setFormData((prev) => ({ ...prev, barcodeId: numericPart }));
+  
+      setTimeout(async () => {
+        const svg = document.querySelector("#barcode-svg");
+        if (!svg) {
+          console.error("SVG element not found!");
+          return reject("SVG not found");
+        }
+  
+        const svgData = new XMLSerializer().serializeToString(svg);
+        const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+        const storage = getStorage();
+        const barcodeRef = storageRef(storage, `barcode-images/${numericPart}.svg`);
+  
+        try {
+          await uploadBytes(barcodeRef, svgBlob);
+          const downloadURL = await getDownloadURL(barcodeRef);
+          setFormData((prev) => ({ ...prev, barcodeImg: downloadURL }));
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      }, 100);
+    });
+  };
+  
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData({
-      ...formData,
-      [name]:
-        name === "quantity" || name === "price" || name === "minStockLevel" ? Number.parseFloat(value) || 0 : value,
-    })
+    const { id, value } = e.target
+    setFormData((prev) => ({
+      ...prev,
+      [id]: ['quantity', 'purchasePrice', 'sellingPrice'].includes(id)
+        ? parseFloat(value) || 0
+        : value,
+    }))
   }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+  
+    const storage = getStorage();
+    const imageRef = storageRef(storage, `item-images/${file.name}`);
+  
+    try {
+      await uploadBytes(imageRef, file);
+      const url = await getDownloadURL(imageRef);
+      setFormData((prev) => ({ ...prev, itemImg: url }));
+    } catch (err) {
+      console.error("Image upload failed", err);
+    }
+  };
+  
 
   const handleCategoryChange = (value: string) => {
-    setFormData({
-      ...formData,
-      category: value,
-    })
+    setFormData((prev) => ({ ...prev, category: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!barcode) {
-      generateBarcode()
-      return
-    }
-
-    const newItem: InventoryItem = {
-      id: uuidv4(),
-      barcode,
-      ...formData,
-    }
-
-    onAddItem(newItem)
-
-    // Reset form
-    setFormData({
-      name: "",
-      sku: "",
-      category: "",
-      quantity: 0,
-      price: 0,
-      supplier: "",
-      location: "",
-      minStockLevel: 0,
-    })
-    setBarcode("")
+  const handleStatusChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, status: value }))
   }
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+  
+    // Wait for barcode generation if not already done
+    if (!barcode || !formData.barcodeImg) {
+      try {
+        await generateBarcode();
+      } catch (err) {
+        console.error("Barcode generation failed:", err);
+        return;
+      }
+    }
+  
+    const itemData = {
+      ...formData,
+      barcodeId: barcode,
+    };
+  
+    try {
+      const newItemRef = push(ref(database, 'Items'));
+      await set(newItemRef, itemData);
+  
+      onAddItem?.(itemData);
+  
+      // Reset form
+      setFormData({
+        productName: '',
+        description: '',
+        category: '',
+        unitMeasure: '',
+        purchasePrice: '',
+        sellingPrice: '',
+        quantity: 0,
+        supplierInfo: '',
+        itemImg: '',
+        sku: '',
+        barcodeId: '',
+        barcodeImg: '',
+        status: '',
+      });
+      setBarcode('');
+      setOpen(false);
+    } catch (error) {
+      console.error('Error saving item to Firebase:', error);
+    }
+  };
+  
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[700px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Add New Inventory Item</DialogTitle>
             <DialogDescription>
-              Fill in the details for the new inventory item. Click generate to create a unique barcode.
+              Fill in the item details and click "Generate Barcode".
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Item Name</Label>
-                <Input id="name" name="name" value={formData.name} onChange={handleChange} required />
+                <Label htmlFor="productName">Product Name</Label>
+                <Input
+                  id="productName"
+                  value={formData.productName}
+                  onChange={handleChange}
+                  required
+                />
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="sku">SKU</Label>
-                <Input id="sku" name="sku" value={formData.sku} onChange={handleChange} required />
+                <Input
+                  id="sku"
+                  value={formData.sku}
+                  onChange={handleChange}
+                  required
+                />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Input
+                id="description"
+                value={formData.description}
+                onChange={handleChange}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
-                <Select value={formData.category} onValueChange={handleCategoryChange}>
+                <Select
+                  value={formData.category}
+                  onValueChange={handleCategoryChange}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
@@ -130,86 +223,143 @@ export function AddItemDialog({ open, setOpen, onAddItem }: AddItemDialogProps) 
                     <SelectItem value="Furniture">Furniture</SelectItem>
                     <SelectItem value="Stationery">Stationery</SelectItem>
                     <SelectItem value="Clothing">Clothing</SelectItem>
-                    <SelectItem value="Food">Food & Beverage</SelectItem>
+                    <SelectItem value="Food">Food</SelectItem>
                     <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="supplier">Supplier</Label>
-                <Input id="supplier" name="supplier" value={formData.supplier} onChange={handleChange} />
+                <Label htmlFor="unitMeasure">Unit Measure</Label>
+                <Input
+                  id="unitMeasure"
+                  value={formData.unitMeasure}
+                  onChange={handleChange}
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
+                <Label htmlFor="purchasePrice">Purchase Price</Label>
+                <Input
+                  id="purchasePrice"
+                  type="number"
+                  min="0"
+                  value={formData.purchasePrice}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sellingPrice">Selling Price</Label>
+                <Input
+                  id="sellingPrice"
+                  type="number"
+                  min="0"
+                  value={formData.sellingPrice}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="quantity">Quantity</Label>
                 <Input
                   id="quantity"
-                  name="quantity"
                   type="number"
                   min="0"
-                  value={formData.quantity || ""}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="price">Unit Price ($)</Label>
-                <Input
-                  id="price"
-                  name="price"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.price || ""}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="minStockLevel">Min Stock Level</Label>
-                <Input
-                  id="minStockLevel"
-                  name="minStockLevel"
-                  type="number"
-                  min="0"
-                  value={formData.minStockLevel || ""}
+                  value={formData.quantity}
                   onChange={handleChange}
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="location">Storage Location</Label>
-              <Input id="location" name="location" value={formData.location} onChange={handleChange} />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="supplierInfo">Supplier Info</Label>
+                <Input
+                  id="supplierInfo"
+                  value={formData.supplierInfo}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={handleStatusChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Available">Available</SelectItem>
+                    <SelectItem value="Out of Stock">Out of Stock</SelectItem>
+                    <SelectItem value="Discontinued">Discontinued</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="itemImg">Upload Item Image</Label>
+                <Input
+                  id="itemImg"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                />
+                {formData.itemImg && (
+                  <img
+                    src={formData.itemImg}
+                    alt="Uploaded Item"
+                    className="max-h-32 rounded-md mt-2"
+                  />
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="barcodeId">Barcode ID (Automatically Generated)</Label>
+                <Input
+                  id="barcodeId"
+                  value={formData.barcodeId}
+                  onChange={handleChange}
+                  disabled
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <Label>Barcode</Label>
-                <Button type="button" variant="outline" size="sm" onClick={generateBarcode}>
+                <Label>Barcode Sticker</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={generateBarcode}
+                >
                   Generate Barcode
                 </Button>
               </div>
 
               {barcode ? (
                 <div className="p-4 border rounded-md flex justify-center">
-                  <BarcodeDisplay value={barcode} />
+                  <div id="barcode-svg">
+                    <BarcodeDisplay value={barcode} />
+                  </div>
                 </div>
               ) : (
                 <div className="p-4 border rounded-md flex justify-center items-center h-20 text-muted-foreground">
                   Click generate to create a barcode
                 </div>
               )}
+
             </div>
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
               Cancel
             </Button>
             <Button type="submit">Add Item</Button>
