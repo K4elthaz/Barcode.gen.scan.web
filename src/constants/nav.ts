@@ -1,8 +1,8 @@
 import {
-  LayoutDashboard,
-  SquareUserRound,
   LayoutList,
-  CircleUser
+  CircleUser,
+  ScanBarcode,
+  Layers
 } from "lucide-react";
 // import { title } from "process";
 // import { href } from "react-router-dom";
@@ -17,13 +17,13 @@ export const navData = {
     {
       title: "Inventory",
       href: "/main",
-      icon: LayoutDashboard,
+      icon: Layers,
       isActive: true,
     },
     {
       title: "Scan Barcode",
-      href: "/main/classroom",
-      icon: SquareUserRound,
+      href: "/main/scanbarcode",
+      icon: ScanBarcode,
     },
     {
       title: "Category",
