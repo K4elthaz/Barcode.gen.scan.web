@@ -9,8 +9,8 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  // server: {
-  //   host: "192.168.1.53", // or use your specific local IP like '192.168.1.100'
-  //   port: 3000, // change this to any port you like
-  // },
+  server: {
+    host: "192.168.1.53", // or use your specific local IP like '192.168.1.100'
+    port: 3000, // change this to any port you like
+  },
 })
