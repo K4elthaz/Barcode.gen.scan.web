@@ -76,13 +76,13 @@ export function LoginForm({
               </Button>
             </div>
           </form>
-          {/* <div className="relative hidden bg-zinc-300 dark:bg-slate-200 md:block">
+          <div className="relative hidden bg-zinc-300 dark:bg-slate-200 md:block">
             <img
-              src="/EduSphere_logo.png"
+              src="/3.png"
               alt="Image"
               className="absolute inset-0 m-auto h-4/5 object-cover"
             />
-          </div> */}
+          </div>
         </CardContent>
       </Card>
       <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 hover:[&_a]:text-primary">
