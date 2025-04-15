@@ -1,8 +1,11 @@
 import {
   Users,
   LayoutDashboard,
-  SquareUserRound
+  SquareUserRound,
+  LayoutList,
 } from "lucide-react";
+import { title } from "process";
+import { href } from "react-router-dom";
 
 export const navData = {
   user: {
@@ -27,5 +30,10 @@ export const navData = {
       href: "/main/users",
       icon: Users,
     },
+    {
+      title: "Category",
+      href: "/main/category",
+      icon: LayoutList,
+    }
   ],
 };

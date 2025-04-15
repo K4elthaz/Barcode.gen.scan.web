@@ -7,6 +7,7 @@ import MainPage from "./Pages/main-page";
 import DashboardPage from "./components/Dashboard/dashboard";
 import ClassroomPage from "./components/Scan Barcode/ScanBarcode";
 import UsersPage from "./components/Users/users";
+import CategoryPage from "./components/Category/category";
 
 import "./App.css";
 
@@ -19,6 +20,7 @@ function AppContent() {
           <Route index element={<DashboardPage />} />
           <Route path="classroom" element={<ClassroomPage />} />
           <Route path="users" element={<UsersPage />} />
+          <Route path="category" element={<CategoryPage />} />
         </Route>
       </Routes>
     </>
