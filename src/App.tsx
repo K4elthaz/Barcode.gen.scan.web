@@ -19,7 +19,7 @@ function AppContent() {
         <Route path="/" element={<LoginPage />} />
         <Route path="/main" element={<MainPage />}>
           <Route index element={<DashboardPage />} />
-          <Route path="classroom" element={<ClassroomPage />} />
+          <Route path="scanbarcode" element={<ClassroomPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="category" element={<CategoryPage />} />
           <Route path="supplier" element={<SupplierPage />} />
