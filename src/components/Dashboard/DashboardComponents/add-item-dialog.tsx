@@ -1,6 +1,6 @@
-import type React from 'react'
-import { useState } from 'react'
-import { v4 as uuidv4 } from 'uuid'
+import type React from "react";
+import { useEffect, useState } from "react";
+import { v4 as uuidv4 } from "uuid";
 import {
   Dialog,
   DialogContent,
@@ -8,26 +8,32 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { BarcodeDisplay } from './barcode-display'
-import { ref, push, set } from 'firebase/database'
-import { database } from '@/lib/firebase'
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+} from "@/components/ui/select";
+import { BarcodeDisplay } from "./barcode-display";
+import { ref, push, set } from "firebase/database";
+import { database } from "@/lib/firebase";
+import {
+  getStorage,
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL,
+} from "firebase/storage";
+import { getCategories } from "@/services/category-services";
 
 interface AddItemDialogProps {
-  open: boolean
-  setOpen: (open: boolean) => void
-  onAddItem?: (item: any) => void
+  open: boolean;
+  setOpen: (open: boolean) => void;
+  onAddItem?: (item: any) => void;
 }
 
 export function AddItemDialog({
@@ -36,42 +42,53 @@ export function AddItemDialog({
   onAddItem,
 }: AddItemDialogProps) {
   const [formData, setFormData] = useState({
-    productName: '',
-    description: '',
-    category: '',
-    unitMeasure: '',
-    purchasePrice: '',
-    sellingPrice: '',
+    productName: "",
+    description: "",
+    category: "",
+    unitMeasure: "",
+    purchasePrice: "",
+    sellingPrice: "",
     quantity: 0,
-    supplierInfo: '',
-    itemImg: '',
-    sku: '',
-    barcodeId: '',
-    barcodeImg: '',
-    status: '',
-  })
+    supplierInfo: "",
+    itemImg: "",
+    sku: "",
+    barcodeId: "",
+    barcodeImg: "",
+    status: "",
+  });
 
-  const [barcode, setBarcode] = useState('')
+  const [barcode, setBarcode] = useState("");
+  const [categories, setCategories] = useState<any[]>([]);
+
+  useEffect(() => {
+    const unsubscribe = getCategories(setCategories);
+    return () => unsubscribe();
+  }, []);
 
   const generateBarcode = async (): Promise<void> => {
     return new Promise((resolve, reject) => {
       const uuid = uuidv4();
-      const numericPart = uuid.replace(/[^0-9]/g, '').substring(0, 13);
+      const numericPart = uuid.replace(/[^0-9]/g, "").substring(0, 13);
       setBarcode(numericPart);
       setFormData((prev) => ({ ...prev, barcodeId: numericPart }));
-  
+
       setTimeout(async () => {
         const svg = document.querySelector("#barcode-svg");
         if (!svg) {
           console.error("SVG element not found!");
           return reject("SVG not found");
         }
-  
+
         const svgData = new XMLSerializer().serializeToString(svg);
-        const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+        const svgBlob = new Blob([svgData], {
+          type: "image/svg+xml;charset=utf-8",
+        });
         const storage = getStorage();
-        const barcodeRef = storageRef(storage, `barcode-images/${numericPart}.svg`);
-  
+        const barcodeRef = storageRef(
+          storage,
+          `barcode-images/${numericPart}.svg`
+        );
+
         try {
           await uploadBytes(barcodeRef, svgBlob);
           const downloadURL = await getDownloadURL(barcodeRef);
@@ -83,24 +100,24 @@ export function AddItemDialog({
       }, 100);
     });
   };
-  
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target
+    const { id, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [id]: ['quantity', 'purchasePrice', 'sellingPrice'].includes(id)
+      [id]: ["quantity", "purchasePrice", "sellingPrice"].includes(id)
         ? parseFloat(value) || 0
         : value,
-    }))
-  }
+    }));
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-  
+
     const storage = getStorage();
     const imageRef = storageRef(storage, `item-images/${file.name}`);
-  
+
     try {
       await uploadBytes(imageRef, file);
       const url = await getDownloadURL(imageRef);
@@ -109,19 +126,18 @@ export function AddItemDialog({
       console.error("Image upload failed", err);
     }
   };
-  
 
   const handleCategoryChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, category: value }))
-  }
+    setFormData((prev) => ({ ...prev, category: value }));
+  };
 
   const handleStatusChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, status: value }))
-  }
+    setFormData((prev) => ({ ...prev, status: value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-  
+
     // Wait for barcode generation if not already done
     if (!barcode || !formData.barcodeImg) {
       try {
@@ -131,41 +147,41 @@ export function AddItemDialog({
         return;
       }
     }
-  
+
     const itemData = {
       ...formData,
       barcodeId: barcode,
     };
-  
+
     try {
-      const newItemRef = push(ref(database, 'Items'));
+      const newItemRef = push(ref(database, "Items"));
       await set(newItemRef, itemData);
-  
+
       onAddItem?.(itemData);
-  
+
       // Reset form
       setFormData({
-        productName: '',
-        description: '',
-        category: '',
-        unitMeasure: '',
-        purchasePrice: '',
-        sellingPrice: '',
+        productName: "",
+        description: "",
+        category: "",
+        unitMeasure: "",
+        purchasePrice: "",
+        sellingPrice: "",
         quantity: 0,
-        supplierInfo: '',
-        itemImg: '',
-        sku: '',
-        barcodeId: '',
-        barcodeImg: '',
-        status: '',
+        supplierInfo: "",
+        itemImg: "",
+        sku: "",
+        barcodeId: "",
+        barcodeImg: "",
+        status: "",
       });
-      setBarcode('');
+      setBarcode("");
       setOpen(false);
     } catch (error) {
-      console.error('Error saving item to Firebase:', error);
+      console.error("Error saving item to Firebase:", error);
     }
   };
-  
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="sm:max-w-[700px]">
@@ -219,12 +235,11 @@ export function AddItemDialog({
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Electronics">Electronics</SelectItem>
-                    <SelectItem value="Furniture">Furniture</SelectItem>
-                    <SelectItem value="Stationery">Stationery</SelectItem>
-                    <SelectItem value="Clothing">Clothing</SelectItem>
-                    <SelectItem value="Food">Food</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.name}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -316,7 +331,9 @@ export function AddItemDialog({
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="barcodeId">Barcode ID (Automatically Generated)</Label>
+                <Label htmlFor="barcodeId">
+                  Barcode ID (Automatically Generated)
+                </Label>
                 <Input
                   id="barcodeId"
                   value={formData.barcodeId}
@@ -350,7 +367,6 @@ export function AddItemDialog({
                   Click generate to create a barcode
                 </div>
               )}
-
             </div>
           </div>
 
@@ -367,5 +383,5 @@ export function AddItemDialog({
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
