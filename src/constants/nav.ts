@@ -1,5 +1,4 @@
 import {
-  Users,
   LayoutDashboard,
   SquareUserRound,
   LayoutList,
@@ -25,11 +24,6 @@ export const navData = {
       title: "Scan Barcode",
       href: "/main/classroom",
       icon: SquareUserRound,
-    },
-    {
-      title: "Users",
-      href: "/main/users",
-      icon: Users,
     },
     {
       title: "Category",
