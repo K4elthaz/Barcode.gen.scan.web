@@ -3,9 +3,8 @@ import {
   LayoutDashboard,
   SquareUserRound,
   LayoutList,
+  CircleUser
 } from "lucide-react";
-import { title } from "process";
-import { href } from "react-router-dom";
 
 export const navData = {
   user: {
@@ -34,6 +33,11 @@ export const navData = {
       title: "Category",
       href: "/main/category",
       icon: LayoutList,
+    },
+    {
+      title: "Supplier",
+      href: "/main/supplier",
+      icon: CircleUser,
     }
   ],
 };

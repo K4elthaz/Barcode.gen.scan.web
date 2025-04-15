@@ -10,6 +10,7 @@ import UsersPage from "./components/Users/users";
 import CategoryPage from "./components/Category/category";
 
 import "./App.css";
+import SupplierPage from "./components/Supplier/supplier";
 
 function AppContent() {
   return (
@@ -21,6 +22,7 @@ function AppContent() {
           <Route path="classroom" element={<ClassroomPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="category" element={<CategoryPage />} />
+          <Route path="supplier" element={<SupplierPage />} />
         </Route>
       </Routes>
     </>
