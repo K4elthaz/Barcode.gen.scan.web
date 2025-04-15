@@ -1,57 +1,39 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { InventoryTable } from "./inventory-table"
 import { AddItemDialog } from "./add-item-dialog"
 import type { InventoryItem } from "@/lib/types"
+import { ref, onValue } from "firebase/database"
+import { database } from "@/lib/firebase"
 
 export default function InventoryDashboard() {
-  const [items, setItems] = useState<InventoryItem[]>([
-    {
-      id: "1",
-      name: "Wireless Headphones",
-      sku: "WH-001",
-      category: "Electronics",
-      quantity: 25,
-      price: 79.99,
-      supplier: "Audio Tech Inc.",
-      location: "Warehouse A, Shelf 3",
-      minStockLevel: 5,
-      barcode: "9876543210123",
-    },
-    {
-      id: "2",
-      name: "Office Chair",
-      sku: "OC-102",
-      category: "Furniture",
-      quantity: 12,
-      price: 149.99,
-      supplier: "Comfort Seating Co.",
-      location: "Warehouse B, Section 2",
-      minStockLevel: 3,
-      barcode: "1234567890123",
-    },
-    {
-      id: "3",
-      name: "Notebook Set",
-      sku: "NS-205",
-      category: "Stationery",
-      quantity: 150,
-      price: 12.99,
-      supplier: "Paper Products Ltd.",
-      location: "Warehouse A, Shelf 7",
-      minStockLevel: 30,
-      barcode: "5678901234567",
-    },
-  ])
-
+  const [items, setItems] = useState<InventoryItem[]>([])
   const [open, setOpen] = useState(false)
 
+  useEffect(() => {
+    const inventoryRef = ref(database, "Items")
+    const unsubscribe = onValue(inventoryRef, (snapshot) => {
+      const data = snapshot.val()
+      if (data) {
+        const formatted = Object.entries(data).map(([id, item]: [string, any]) => ({
+          id,
+          ...item
+        })) as InventoryItem[]
+        setItems(formatted)
+      } else {
+        setItems([])
+      }
+    })
+
+    return () => unsubscribe()
+  }, [])
+
   const addItem = (item: InventoryItem) => {
-    setItems([...items, item])
+    setItems((prev) => [...prev, item])
     setOpen(false)
   }
 
