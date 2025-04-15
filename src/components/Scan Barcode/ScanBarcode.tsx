@@ -1,63 +1,80 @@
-'use client'
+"use client"
 
-import { useState, useRef } from 'react'
-import JsBarcode from 'jsbarcode'
-import { v4 as uuidv4 } from 'uuid'
+import { useState } from "react"
+import { BarcodeScanner } from "./ScannerComponents/barcode-scanner"
+import { ScannedItemsTable } from "./ScannerComponents/scanned-items-table"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
-export default function ScanBarcode() {
-  const [sku, setSku] = useState('')
-  const [barcodeValue, setBarcodeValue] = useState('')
-  const barcodeRef = useRef<HTMLCanvasElement>(null)
+export type ScannedItem = {
+  id: string
+  barcode: string
+  timestamp: Date
+}
 
-  const handleGenerate = () => {
-    if (sku.trim() === '') return;
-    const value = `${sku}-${uuidv4().slice(0, 8)}`
-    setBarcodeValue(value)
+export default function Home() {
+  const [scannedItems, setScannedItems] = useState<ScannedItem[]>([])
+  const [isScanning, setIsScanning] = useState(false)
 
-    if (barcodeRef.current) {
-      // Ensure canvas is clear before drawing
-      const canvas = barcodeRef.current;
-      const context = canvas.getContext('2d');
-      if (context) {
-        context.clearRect(0, 0, canvas.width, canvas.height);
+  const handleScan = (barcode: string) => {
+    if (barcode) {
+      const newItem: ScannedItem = {
+        id: crypto.randomUUID(),
+        barcode,
+        timestamp: new Date(),
       }
-
-      try {
-        JsBarcode(barcodeRef.current, value, {
-          format: 'CODE128',
-          lineColor: '#000',
-          width: 2,
-          height: 80,
-          displayValue: true,
-        })
-      } catch (err) {
-        console.error('Barcode generation error:', err)
-      }
+      setScannedItems((prev) => [newItem, ...prev])
+      setIsScanning(false)
     }
   }
 
-  return (
-    <div className="p-6 max-w-md mx-auto space-y-4">
-      <h2 className="text-xl font-semibold">Create Inventory Item</h2>
-      <input
-        className="w-full border p-2 rounded"
-        placeholder="SKU"
-        value={sku}
-        onChange={(e) => setSku(e.target.value)}
-      />
-      <button
-        onClick={handleGenerate}
-        className="bg-blue-600 text-white px-4 py-2 rounded"
-      >
-        Generate Barcode
-      </button>
+  const handleDelete = (id: string) => {
+    setScannedItems((prev) => prev.filter((item) => item.id !== id))
+  }
 
-      {barcodeValue && (
-        <div className="mt-6">
-          <canvas ref={barcodeRef} width="300" height="100"></canvas> {/* Set width and height */}
-          <p className="text-gray-500 text-sm mt-2">Value: {barcodeValue}</p>
-        </div>
-      )}
-    </div>
+  const clearAll = () => {
+    setScannedItems([])
+  }
+
+  return (
+    <main className="container mx-auto py-6 px-4 md:px-6">
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Barcode Scanner</CardTitle>
+          <CardDescription>Scan barcodes to add them to the table below</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isScanning ? (
+            <div className="space-y-4">
+              <BarcodeScanner onScan={handleScan} onError={(err) => console.error(err)} />
+              <Button variant="outline" onClick={() => setIsScanning(false)}>
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <Button onClick={() => setIsScanning(true)}>Start Scanning</Button>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Scanned Items</CardTitle>
+            <CardDescription>
+              {scannedItems.length} item{scannedItems.length !== 1 ? "s" : ""} scanned
+            </CardDescription>
+          </div>
+          {scannedItems.length > 0 && (
+            <Button variant="outline" onClick={clearAll}>
+              Clear All
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent>
+          <ScannedItemsTable items={scannedItems} onDelete={handleDelete} />
+        </CardContent>
+      </Card>
+    </main>
   )
 }
