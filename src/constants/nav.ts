@@ -4,6 +4,7 @@ import {
   ScanBarcode,
   Layers
 } from "lucide-react";
+import { title } from "process";
 // import { title } from "process";
 // import { href } from "react-router-dom";
 
@@ -33,6 +34,11 @@ export const navData = {
     {
       title: "Supplier",
       href: "/main/supplier",
+      icon: CircleUser,
+    },
+    {
+      title: "Audit Trail",
+      href: "/main/auditTrail",
       icon: CircleUser,
     }
   ],

@@ -8,6 +8,7 @@ import DashboardPage from "./components/Dashboard/dashboard";
 import ClassroomPage from "./components/Scan Barcode/ScanBarcode";
 import UsersPage from "./components/Users/users";
 import CategoryPage from "./components/Category/category";
+import AuditTrailyPage from "./components/AuditTrail/auditTrail";
 
 import "./App.css";
 import SupplierPage from "./components/Supplier/supplier";
@@ -23,6 +24,7 @@ function AppContent() {
           <Route path="users" element={<UsersPage />} />
           <Route path="category" element={<CategoryPage />} />
           <Route path="supplier" element={<SupplierPage />} />
+          <Route path="auditTrail" element={<AuditTrailyPage/>}/>
         </Route>
       </Routes>
     </>
