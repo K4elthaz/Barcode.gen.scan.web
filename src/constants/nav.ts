@@ -2,7 +2,7 @@ import {
   LayoutList,
   CircleUser,
   ScanBarcode,
-  Layers
+  Layers, SquareStack
 } from "lucide-react";
 import { title } from "process";
 // import { title } from "process";
@@ -39,7 +39,7 @@ export const navData = {
     {
       title: "Audit Trail",
       href: "/main/auditTrail",
-      icon: CircleUser,
+      icon: SquareStack,
     }
   ],
 };
