@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { fetchAuditTrails, AuditTrailItem } from "@/services/auditTrail-services";
 import { reverseGeocode } from "@/utils/geocode";
-import { format } from "date-fns";
+// import { format } from "date-fns";
 
 export default function AuditTrailListTable() {
   const [auditData, setAuditData] = useState<AuditTrailItem[]>([]);
