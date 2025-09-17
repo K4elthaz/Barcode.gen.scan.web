@@ -33,9 +33,10 @@ export default function AuditTrailListTable() {
         <TableHeader>
           <TableRow >
             <TableHead className="text-center">Item</TableHead>
-            <TableHead className="text-center">Status</TableHead>
+            <TableHead className="text-center">User</TableHead>
+            {/* <TableHead className="text-center">Status</TableHead>
             <TableHead className="text-center">Previous Qty</TableHead>
-            <TableHead className="text-center">New Qty</TableHead>
+            <TableHead className="text-center">New Qty</TableHead> */}
             {/* <TableHead className="text-center">Timestamp</TableHead> */}
             <TableHead className="text-center">Location</TableHead>
           </TableRow>
@@ -43,10 +44,11 @@ export default function AuditTrailListTable() {
         <TableBody>
           {auditData.map((item) => (
             <TableRow key={item.uniqueID}>
-              <TableCell>{item.itemName}</TableCell>
-              <TableCell>{item.status}</TableCell>
+              <TableCell>{item.productName}</TableCell>
+              <TableCell>{item.user}</TableCell>
+              {/* <TableCell>{item.status}</TableCell>
               <TableCell>{item.previousQuantity}</TableCell>
-              <TableCell>{item.newQuantity}</TableCell>
+              <TableCell>{item.newQuantity}</TableCell> */}
 {/* <TableCell>
   {item.timeStamp && !isNaN(Date.parse(item.timeStamp.toString() + "Z"))
     ? format(new Date(item.timeStamp.toString() + "Z"), "PPpp")

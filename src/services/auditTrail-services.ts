@@ -6,7 +6,8 @@ import { ref, onValue } from "firebase/database";
 export interface AuditTrailItem {
   id: string;
   uniqueID: string;
-  itemName: string;
+  productName: string;
+  user: string;
   latitude: number;
   longitude: number;
   timeStamp: string;
