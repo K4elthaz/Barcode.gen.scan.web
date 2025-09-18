@@ -66,6 +66,7 @@ export function InventoryTable({ items }: InventoryTableProps) {
             <TableHead className="text-center">Quantity</TableHead>
             <TableHead className="text-center">Selling Price</TableHead>
             <TableHead className="text-center">Supplier</TableHead>
+            <TableHead className='text-center'>User</TableHead>
             <TableHead className="text-center">Status</TableHead>
             <TableHead className="text-center">Barcode</TableHead>
             <TableHead className="text-center">Actions</TableHead>
@@ -80,6 +81,7 @@ export function InventoryTable({ items }: InventoryTableProps) {
               <TableCell>{item.quantity}</TableCell>
               <TableCell>₱{parseFloat(item.sellingPrice).toFixed(2)}</TableCell>
               <TableCell>{item.supplierInfo}</TableCell>
+              <TableCell>{item.user}</TableCell>
               <TableCell>{item.status}</TableCell>
               <TableCell>
                 <BarcodeDisplay value={item.barcodeId} />

@@ -55,6 +55,7 @@ export function AddItemDialog({
     barcodeId: "",
     barcodeImg: "",
     status: "",
+    user: "", // 👈 Added User fie
   });
 
   const [barcode, setBarcode] = useState("");
@@ -174,6 +175,7 @@ export function AddItemDialog({
         barcodeId: "",
         barcodeImg: "",
         status: "",
+        user: "", // reset field
       });
       setBarcode("");
       setOpen(false);
@@ -293,6 +295,15 @@ export function AddItemDialog({
                   id="supplierInfo"
                   value={formData.supplierInfo}
                   onChange={handleChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="user">User</Label>
+                <Input
+                  id="user"
+                  value={formData.user}
+                  onChange={handleChange}
+                  required
                 />
               </div>
               <div className="space-y-2">
