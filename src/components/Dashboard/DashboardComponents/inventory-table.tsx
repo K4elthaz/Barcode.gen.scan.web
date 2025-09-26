@@ -14,12 +14,37 @@ import { Button } from '@/components/ui/button'
 import { Trash2, Printer } from 'lucide-react'
 import { ref, remove } from 'firebase/database'
 import { database } from '@/lib/firebase'
+import { reverseGeocode } from '@/utils/geocode'
+import { useEffect, useState } from 'react'
 
 interface InventoryTableProps {
   items: InventoryItem[]
 }
 
 export function InventoryTable({ items }: InventoryTableProps) {
+  const [addresses, setAddresses] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      const results: Record<string, string> = {}
+      for (const item of items) {
+        if (item.location?.lat && item.location?.lng) {
+          try {
+            const address = await reverseGeocode(item.location.lat, item.location.lng)
+            results[item.id] = address
+          } catch {
+            results[item.id] = "Unknown location"
+          }
+        }
+      }
+      setAddresses(results)
+    }
+
+    if (items.length > 0) {
+      fetchAddresses()
+    }
+  }, [items])
+
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this item?')) {
       await remove(ref(database, `Items/${id}`))
@@ -66,8 +91,9 @@ export function InventoryTable({ items }: InventoryTableProps) {
             <TableHead className="text-center">Quantity</TableHead>
             <TableHead className="text-center">Selling Price</TableHead>
             <TableHead className="text-center">Supplier</TableHead>
-            <TableHead className='text-center'>User</TableHead>
+            <TableHead className="text-center">User</TableHead>
             <TableHead className="text-center">Status</TableHead>
+            <TableHead className="text-center">Location</TableHead>
             <TableHead className="text-center">Barcode</TableHead>
             <TableHead className="text-center">Actions</TableHead>
           </TableRow>
@@ -83,6 +109,12 @@ export function InventoryTable({ items }: InventoryTableProps) {
               <TableCell>{item.supplierInfo}</TableCell>
               <TableCell>{item.user}</TableCell>
               <TableCell>{item.status}</TableCell>
+              <TableCell>
+                {addresses[item.id] ??
+                  (item.location && item.location.lat !== undefined && item.location.lng !== undefined
+                    ? `${item.location.lat.toFixed(5)}, ${item.location.lng.toFixed(5)}`
+                    : "No location")}
+              </TableCell>
               <TableCell>
                 <BarcodeDisplay value={item.barcodeId} />
               </TableCell>

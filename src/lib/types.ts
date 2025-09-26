@@ -14,4 +14,8 @@ export interface InventoryItem {
   barcodeId: string;
   barcodeImg: string;
   status: string;
+  location: {
+    lat: number;
+    lng: number;
+  }; 
 }

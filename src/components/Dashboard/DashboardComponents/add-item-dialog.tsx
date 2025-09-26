@@ -1,6 +1,6 @@
-import type React from "react";
-import { useEffect, useState } from "react";
-import { v4 as uuidv4 } from "uuid";
+import type React from 'react'
+import { useEffect, useState } from 'react'
+import { v4 as uuidv4 } from 'uuid'
 import {
   Dialog,
   DialogContent,
@@ -8,32 +8,34 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { BarcodeDisplay } from "./barcode-display";
-import { ref, push, set } from "firebase/database";
-import { database } from "@/lib/firebase";
+} from '@/components/ui/select'
+import { BarcodeDisplay } from './barcode-display'
+import { ref, push, set } from 'firebase/database'
+import { database } from '@/lib/firebase'
 import {
   getStorage,
   ref as storageRef,
   uploadBytes,
   getDownloadURL,
-} from "firebase/storage";
-import { getCategories } from "@/services/category-services";
+} from 'firebase/storage'
+import { getCategories } from '@/services/category-services'
+import { MapSelector } from '@/components/Map-selector'
+import { reverseGeocode } from '@/utils/geocode'
 
 interface AddItemDialogProps {
-  open: boolean;
-  setOpen: (open: boolean) => void;
-  onAddItem?: (item: any) => void;
+  open: boolean
+  setOpen: (open: boolean) => void
+  onAddItem?: (item: any) => void
 }
 
 export function AddItemDialog({
@@ -42,152 +44,164 @@ export function AddItemDialog({
   onAddItem,
 }: AddItemDialogProps) {
   const [formData, setFormData] = useState({
-    productName: "",
-    description: "",
-    category: "",
-    unitMeasure: "",
-    purchasePrice: "",
-    sellingPrice: "",
+    productName: '',
+    description: '',
+    category: '',
+    unitMeasure: '',
+    purchasePrice: '',
+    sellingPrice: '',
     quantity: 0,
-    supplierInfo: "",
-    itemImg: "",
-    sku: "",
-    barcodeId: "",
-    barcodeImg: "",
-    status: "",
-    user: "", // 👈 Added User fie
-  });
-
-  const [barcode, setBarcode] = useState("");
-  const [categories, setCategories] = useState<any[]>([]);
+    supplierInfo: '',
+    itemImg: '',
+    sku: '',
+    barcodeId: '',
+    barcodeImg: '',
+    status: '',
+    user: '', // 👈 Added User fie
+    location: { lat: 0, lng: 0 },
+  })
+  const [barcode, setBarcode] = useState('')
+  const [categories, setCategories] = useState<any[]>([])
 
   useEffect(() => {
-    const unsubscribe = getCategories(setCategories);
-    return () => unsubscribe();
-  }, []);
+    const unsubscribe = getCategories(setCategories)
+    return () => unsubscribe()
+  }, [])
 
   const generateBarcode = async (): Promise<void> => {
     return new Promise((resolve, reject) => {
-      const uuid = uuidv4();
-      const numericPart = uuid.replace(/[^0-9]/g, "").substring(0, 13);
-      setBarcode(numericPart);
-      setFormData((prev) => ({ ...prev, barcodeId: numericPart }));
+      const uuid = uuidv4()
+      const numericPart = uuid.replace(/[^0-9]/g, '').substring(0, 13)
+      setBarcode(numericPart)
+      setFormData((prev) => ({ ...prev, barcodeId: numericPart }))
 
       setTimeout(async () => {
-        const svg = document.querySelector("#barcode-svg");
+        const svg = document.querySelector('#barcode-svg')
         if (!svg) {
-          console.error("SVG element not found!");
-          return reject("SVG not found");
+          console.error('SVG element not found!')
+          return reject('SVG not found')
         }
 
-        const svgData = new XMLSerializer().serializeToString(svg);
+        const svgData = new XMLSerializer().serializeToString(svg)
         const svgBlob = new Blob([svgData], {
-          type: "image/svg+xml;charset=utf-8",
-        });
-        const storage = getStorage();
+          type: 'image/svg+xml;charset=utf-8',
+        })
+        const storage = getStorage()
         const barcodeRef = storageRef(
           storage,
           `barcode-images/${numericPart}.svg`
-        );
+        )
 
         try {
-          await uploadBytes(barcodeRef, svgBlob);
-          const downloadURL = await getDownloadURL(barcodeRef);
-          setFormData((prev) => ({ ...prev, barcodeImg: downloadURL }));
-          resolve();
+          await uploadBytes(barcodeRef, svgBlob)
+          const downloadURL = await getDownloadURL(barcodeRef)
+          setFormData((prev) => ({ ...prev, barcodeImg: downloadURL }))
+          resolve()
         } catch (err) {
-          reject(err);
+          reject(err)
         }
-      }, 100);
-    });
-  };
+      }, 100)
+    })
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
+    const { id, value } = e.target
     setFormData((prev) => ({
       ...prev,
-      [id]: ["quantity", "purchasePrice", "sellingPrice"].includes(id)
+      [id]: ['quantity', 'purchasePrice', 'sellingPrice'].includes(id)
         ? parseFloat(value) || 0
         : value,
-    }));
-  };
+    }))
+  }
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const file = e.target.files?.[0]
+    if (!file) return
 
-    const storage = getStorage();
-    const imageRef = storageRef(storage, `item-images/${file.name}`);
+    const storage = getStorage()
+    const imageRef = storageRef(storage, `item-images/${file.name}`)
 
     try {
-      await uploadBytes(imageRef, file);
-      const url = await getDownloadURL(imageRef);
-      setFormData((prev) => ({ ...prev, itemImg: url }));
+      await uploadBytes(imageRef, file)
+      const url = await getDownloadURL(imageRef)
+      setFormData((prev) => ({ ...prev, itemImg: url }))
     } catch (err) {
-      console.error("Image upload failed", err);
+      console.error('Image upload failed', err)
     }
-  };
+  }
 
   const handleCategoryChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, category: value }));
-  };
+    setFormData((prev) => ({ ...prev, category: value }))
+  }
 
   const handleStatusChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, status: value }));
-  };
+    setFormData((prev) => ({ ...prev, status: value }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
 
     // Wait for barcode generation if not already done
     if (!barcode || !formData.barcodeImg) {
       try {
-        await generateBarcode();
+        await generateBarcode()
       } catch (err) {
-        console.error("Barcode generation failed:", err);
-        return;
+        console.error('Barcode generation failed:', err)
+        return
       }
+    }
+
+    let address = ''
+    try {
+      address = await reverseGeocode(
+        formData.location.lat,
+        formData.location.lng
+      )
+    } catch (err) {
+      console.error('Reverse geocoding failed', err)
     }
 
     const itemData = {
       ...formData,
       barcodeId: barcode,
-    };
+      address, // store the human-readable address
+    }
 
     try {
-      const newItemRef = push(ref(database, "Items"));
-      await set(newItemRef, itemData);
+      const newItemRef = push(ref(database, 'Items'))
+      await set(newItemRef, itemData)
 
-      onAddItem?.(itemData);
+      onAddItem?.(itemData)
 
       // Reset form
       setFormData({
-        productName: "",
-        description: "",
-        category: "",
-        unitMeasure: "",
-        purchasePrice: "",
-        sellingPrice: "",
+        productName: '',
+        description: '',
+        category: '',
+        unitMeasure: '',
+        purchasePrice: '',
+        sellingPrice: '',
         quantity: 0,
-        supplierInfo: "",
-        itemImg: "",
-        sku: "",
-        barcodeId: "",
-        barcodeImg: "",
-        status: "",
-        user: "", // reset field
-      });
-      setBarcode("");
-      setOpen(false);
+        supplierInfo: '',
+        itemImg: '',
+        sku: '',
+        barcodeId: '',
+        barcodeImg: '',
+        status: '',
+        user: '', // reset field
+        location: { lat: 0, lng: 0 },
+      })
+      setBarcode('')
+      setOpen(false)
     } catch (error) {
-      console.error("Error saving item to Firebase:", error);
+      console.error('Error saving item to Firebase:', error)
     }
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-[700px]">
-        <form onSubmit={handleSubmit}>
+      <DialogContent className="max-w-[90vw] lg:max-w-[700px]">
+        <form onSubmit={handleSubmit} className="overflow-y-auto max-h-[85vh]">
           <DialogHeader>
             <DialogTitle>Add New Inventory Item</DialogTitle>
             <DialogDescription>
@@ -307,6 +321,16 @@ export function AddItemDialog({
                 />
               </div>
               <div className="space-y-2">
+                <Label>Select Location</Label>
+                <MapSelector
+                  location={formData.location}
+                  onLocationChange={(loc) =>
+                    setFormData((prev) => ({ ...prev, location: loc }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
                 <Select
                   value={formData.status}
@@ -394,5 +418,5 @@ export function AddItemDialog({
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

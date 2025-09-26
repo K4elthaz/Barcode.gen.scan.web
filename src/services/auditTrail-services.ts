@@ -15,6 +15,9 @@ export interface AuditTrailItem {
   previousQuantity: number;
   status: string;
   locationName?: string; // Optional field for the converted address
+  defaultAddress?: string;
+  locationStatus?: string;
+
 }
 
 // Fetch all audit trails from Firebase

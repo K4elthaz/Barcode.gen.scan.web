@@ -34,11 +34,13 @@ export default function AuditTrailListTable() {
           <TableRow >
             <TableHead className="text-center">Item</TableHead>
             <TableHead className="text-center">User</TableHead>
+            <TableHead className="text-center">Default Location</TableHead>
             {/* <TableHead className="text-center">Status</TableHead>
             <TableHead className="text-center">Previous Qty</TableHead>
             <TableHead className="text-center">New Qty</TableHead> */}
             {/* <TableHead className="text-center">Timestamp</TableHead> */}
-            <TableHead className="text-center">Location</TableHead>
+            <TableHead className="text-center">Scanned Location</TableHead>
+            <TableHead className="text-center">Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -54,9 +56,9 @@ export default function AuditTrailListTable() {
     ? format(new Date(item.timeStamp.toString() + "Z"), "PPpp")
     : "Invalid date"}
 </TableCell> */}
-
-
+              <TableCell >{item.defaultAddress}</TableCell>
               <TableCell>{item.locationName}</TableCell>
+              <TableCell>{item.locationStatus}</TableCell>
             </TableRow>
           ))}
         </TableBody>
