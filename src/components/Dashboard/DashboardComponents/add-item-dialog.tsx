@@ -48,8 +48,8 @@ export function AddItemDialog({
     description: '',
     category: '',
     unitMeasure: '',
-    purchasePrice: '',
-    sellingPrice: '',
+    purchasePrice: 0,
+    sellingPrice: 0,
     quantity: 0,
     supplierInfo: '',
     itemImg: '',
@@ -57,9 +57,10 @@ export function AddItemDialog({
     barcodeId: '',
     barcodeImg: '',
     status: '',
-    user: '', // 👈 Added User fie
+    user: '',
     location: { lat: 0, lng: 0 },
   })
+
   const [barcode, setBarcode] = useState('')
   const [categories, setCategories] = useState<any[]>([])
 
@@ -67,6 +68,29 @@ export function AddItemDialog({
     const unsubscribe = getCategories(setCategories)
     return () => unsubscribe()
   }, [])
+
+  // inside AddItemDialog
+
+  // helper: check required fields
+  const isFormValid = (): boolean => {
+    return (
+      formData.productName.trim() !== '' &&
+      formData.sku.trim() !== '' &&
+      formData.category.trim() !== '' &&
+      formData.unitMeasure.trim() !== '' &&
+      formData.purchasePrice > 0 &&
+      formData.sellingPrice > 0 &&
+      formData.quantity > 0 &&
+      formData.supplierInfo.trim() !== '' &&
+      formData.itemImg.trim() !== '' &&
+      formData.status.trim() !== '' &&
+      formData.user.trim() !== '' &&
+      formData.location.lat !== 0 &&
+      formData.location.lng !== 0 &&
+      !!formData.barcodeId &&
+      !!formData.barcodeImg
+    )
+  }
 
   const generateBarcode = async (): Promise<void> => {
     return new Promise((resolve, reject) => {
@@ -109,7 +133,7 @@ export function AddItemDialog({
     setFormData((prev) => ({
       ...prev,
       [id]: ['quantity', 'purchasePrice', 'sellingPrice'].includes(id)
-        ? parseFloat(value) || 0
+        ? Number(value) || 0
         : value,
     }))
   }
@@ -174,23 +198,25 @@ export function AddItemDialog({
       onAddItem?.(itemData)
 
       // Reset form
+      // Reset form
       setFormData({
         productName: '',
         description: '',
         category: '',
         unitMeasure: '',
-        purchasePrice: '',
-        sellingPrice: '',
-        quantity: 0,
+        purchasePrice: 0, // 👈 number, not ''
+        sellingPrice: 0, // 👈 number, not ''
+        quantity: 0, // 👈 number
         supplierInfo: '',
         itemImg: '',
         sku: '',
         barcodeId: '',
         barcodeImg: '',
         status: '',
-        user: '', // reset field
+        user: '',
         location: { lat: 0, lng: 0 },
       })
+
       setBarcode('')
       setOpen(false)
     } catch (error) {
@@ -413,7 +439,9 @@ export function AddItemDialog({
             >
               Cancel
             </Button>
-            <Button type="submit">Add Item</Button>
+            <Button type="submit" disabled={!isFormValid()}>
+              Add Item
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
