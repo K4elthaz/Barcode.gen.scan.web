@@ -27,16 +27,44 @@ export function InventoryTable({ items }: InventoryTableProps) {
   useEffect(() => {
     const fetchAddresses = async () => {
       const results: Record<string, string> = {}
+
       for (const item of items) {
+        console.log('[InventoryTable] Item location:', {
+          id: item.id,
+          location: item.location,
+        })
+
         if (item.location?.lat && item.location?.lng) {
           try {
-            const address = await reverseGeocode(item.location.lat, item.location.lng)
+            console.log(
+              `[InventoryTable] Reverse geocoding ${item.id}:`,
+              item.location.lat,
+              item.location.lng
+            )
+
+            const address = await reverseGeocode(
+              item.location.lat,
+              item.location.lng
+            )
+
+            console.log(
+              `[InventoryTable] Resolved address for ${item.id}:`,
+              address
+            )
+
             results[item.id] = address
-          } catch {
-            results[item.id] = "Unknown location"
+          } catch (error) {
+            console.error(
+              `[InventoryTable] Failed to reverse geocode ${item.id}:`,
+              error
+            )
+            results[item.id] = 'Unknown location'
           }
+        } else {
+          console.warn(`[InventoryTable] No valid location for item ${item.id}`)
         }
       }
+
       setAddresses(results)
     }
 
@@ -110,11 +138,25 @@ export function InventoryTable({ items }: InventoryTableProps) {
               <TableCell>{item.user}</TableCell>
               <TableCell>{item.status}</TableCell>
               <TableCell>
-                {addresses[item.id] ??
-                  (item.location && item.location.lat !== undefined && item.location.lng !== undefined
-                    ? `${item.location.lat.toFixed(5)}, ${item.location.lng.toFixed(5)}`
-                    : "No location")}
+                {(() => {
+                  const value =
+                    addresses[item.id] ??
+                    (item.location?.lat !== undefined &&
+                    item.location?.lng !== undefined
+                      ? `${item.location.lat.toFixed(
+                          5
+                        )}, ${item.location.lng.toFixed(5)}`
+                      : 'No location')
+
+                  console.log('[InventoryTable] Rendered location:', {
+                    id: item.id,
+                    value,
+                  })
+
+                  return value
+                })()}
               </TableCell>
+
               <TableCell>
                 <BarcodeDisplay value={item.barcodeId} />
               </TableCell>
