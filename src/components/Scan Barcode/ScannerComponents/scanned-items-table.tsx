@@ -45,7 +45,7 @@ export function ScannedItemsTable({ items, onDelete }: ScannedItemsTableProps) {
             <TableHead>Quantity</TableHead>
             <TableHead>Supplier</TableHead>
             <TableHead>SKU</TableHead>
-            <TableHead>Barcode ID</TableHead>
+            <TableHead>QR Code ID</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Scanned At</TableHead>
             <TableHead className="w-[80px]">Actions</TableHead>

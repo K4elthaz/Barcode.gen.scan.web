@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
 interface BarcodeScannerProps {
-  onScan: (barcode: string) => void
+  onScan: (code: string) => void
   onError: (error: Error) => void
 }
 
@@ -73,18 +73,18 @@ export function BarcodeScanner({ onScan, onError }: BarcodeScannerProps) {
           return
         }
 
-        // Create barcode detector
+        // Create QR detector
         const detector = new (window as any).BarcodeDetector({
-          formats: ["qr_code", "code_128", "code_39", "ean_13", "ean_8", "upc_a", "upc_e"],
+          formats: ["qr_code"],
         })
 
         // Start detection loop
         const detectCodes = async () => {
           if (videoRef.current && detector) {
             try {
-              const barcodes = await detector.detect(videoRef.current)
-              if (barcodes.length > 0) {
-                onScan(barcodes[0].rawValue)
+              const codes = await detector.detect(videoRef.current)
+              if (codes.length > 0) {
+                onScan(codes[0].rawValue)
                 return // Stop scanning after successful detection
               }
               animationFrameId = requestAnimationFrame(detectCodes)
@@ -156,14 +156,16 @@ export function BarcodeScanner({ onScan, onError }: BarcodeScannerProps) {
         <form onSubmit={handleManualSubmit} className="flex gap-2">
           <Input
             type="text"
-            placeholder="Enter barcode manually"
+            placeholder="Enter QR code manually"
             value={manualEntry}
             onChange={(e) => setManualEntry(e.target.value)}
           />
           <Button type="submit">Add</Button>
         </form>
       ) : (
-        <p className="text-sm text-muted-foreground">Position the barcode within the camera view to scan</p>
+        <p className="text-sm text-muted-foreground">
+          Position the QR code within the camera view to scan
+        </p>
       )}
     </div>
   )

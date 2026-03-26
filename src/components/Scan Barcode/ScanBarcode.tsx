@@ -13,11 +13,11 @@ export default function Home() {
   const [scannedItems, setScannedItems] = useState<(InventoryItem & { timestamp: Date })[]>([])
   const [isScanning, setIsScanning] = useState(false)
 
-  const handleScan = (barcode: string) => {
-    if (!barcode) return
+  const handleScan = (scannedCode: string) => {
+    if (!scannedCode) return
   
     const itemsRef = ref(database, "Items") // Make sure this path matches your DB structure
-    const itemsQuery = query(itemsRef, orderByChild("barcodeId"), equalTo(barcode))
+    const itemsQuery = query(itemsRef, orderByChild("barcodeId"), equalTo(scannedCode))
   
     onValue(itemsQuery, (snapshot) => {
       if (snapshot.exists()) {
@@ -34,7 +34,7 @@ export default function Home() {
   
         setScannedItems((prev) => [newItem, ...prev])
       } else {
-        alert("Item not found for scanned barcode.")
+        alert("Item not found for scanned QR code.")
       }
   
       setIsScanning(false)
@@ -55,8 +55,10 @@ export default function Home() {
     <main className="container mx-auto py-6 px-4 md:px-6">
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Barcode Scanner</CardTitle>
-          <CardDescription>Scan barcodes to add them to the table below</CardDescription>
+          <CardTitle>QR Code Scanner</CardTitle>
+          <CardDescription>
+            Scan QR codes to add items to the table below
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {isScanning ? (

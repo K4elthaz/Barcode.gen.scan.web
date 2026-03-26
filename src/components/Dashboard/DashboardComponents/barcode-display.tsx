@@ -1,35 +1,57 @@
 "use client"
 
-import { useEffect, useRef } from "react"
-import JsBarcode from "jsbarcode"
+import { useEffect, useState } from "react"
+import QRCode from "qrcode"
 
 interface BarcodeDisplayProps {
   value: string
 }
 
 export function BarcodeDisplay({ value }: BarcodeDisplayProps) {
-  const barcodeRef = useRef<SVGSVGElement>(null)
+  const [qrDataUrl, setQrDataUrl] = useState<string>("")
 
   useEffect(() => {
-    if (barcodeRef.current && value) {
-      try {
-        JsBarcode(barcodeRef.current, value, {
-          format: "CODE128",
-          width: 1.5,
-          height: 40,
-          displayValue: true,
-          fontSize: 12,
-          margin: 5,
-        })
-      } catch (error) {
-        console.error("Error generating barcode:", error)
+    let isMounted = true
+
+    const generateQr = async () => {
+      if (!value) {
+        setQrDataUrl("")
+        return
       }
+
+      try {
+        const dataUrl = await QRCode.toDataURL(value, {
+          width: 160,
+          margin: 1,
+          errorCorrectionLevel: "M",
+        })
+
+        if (isMounted) {
+          setQrDataUrl(dataUrl)
+        }
+      } catch (error) {
+        console.error("Error generating QR code:", error)
+      }
+    }
+
+    generateQr()
+
+    return () => {
+      isMounted = false
     }
   }, [value])
 
+  if (!qrDataUrl) {
+    return null
+  }
+
   return (
     <div className="flex justify-center">
-      <svg ref={barcodeRef} className="w-full max-w-[150px]"></svg>
+      <img
+        src={qrDataUrl}
+        alt={`QR code for ${value}`}
+        className="w-full max-w-[150px]"
+      />
     </div>
   )
 }

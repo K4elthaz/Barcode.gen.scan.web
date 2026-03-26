@@ -85,20 +85,22 @@ export function InventoryTable({ items }: InventoryTableProps) {
       printWindow.document.write(`
       <html>
         <head>
-          <title>Print Barcode</title>
+          <title>Print QR Code</title>
         </head>
         <body style="display:flex;justify-content:center;align-items:center;height:100vh;">
-          <svg id="barcode"></svg>
-          <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+          <div id="qrcode"></div>
+          <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
           <script>
             window.onload = function() {
-              JsBarcode("#barcode", "${barcodeId}", {
-                format: "CODE128",
-                width: 2,
-                height: 60,
-                displayValue: true
+              new QRCode(document.getElementById("qrcode"), {
+                text: "${barcodeId}",
+                width: 220,
+                height: 220,
+                correctLevel: QRCode.CorrectLevel.M
               });
-              window.print();
+              setTimeout(function () {
+                window.print();
+              }, 250);
             }
           </script>
         </body>
@@ -122,7 +124,7 @@ export function InventoryTable({ items }: InventoryTableProps) {
             <TableHead className="text-center">User</TableHead>
             <TableHead className="text-center">Status</TableHead>
             <TableHead className="text-center">Location</TableHead>
-            <TableHead className="text-center">Barcode</TableHead>
+            <TableHead className="text-center">QR Code</TableHead>
             <TableHead className="text-center">Actions</TableHead>
           </TableRow>
         </TableHeader>

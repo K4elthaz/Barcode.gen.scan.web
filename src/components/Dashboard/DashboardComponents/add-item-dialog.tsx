@@ -28,6 +28,7 @@ import {
   uploadBytes,
   getDownloadURL,
 } from 'firebase/storage'
+import QRCode from 'qrcode'
 import { getCategories } from '@/services/category-services'
 import { MapSelector } from '@/components/Map-selector'
 import { reverseGeocode } from '@/utils/geocode'
@@ -93,39 +94,27 @@ export function AddItemDialog({
   }
 
   const generateBarcode = async (): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      const uuid = uuidv4()
-      const numericPart = uuid.replace(/[^0-9]/g, '').substring(0, 13)
-      setBarcode(numericPart)
-      setFormData((prev) => ({ ...prev, barcodeId: numericPart }))
+    const uuid = uuidv4()
+    const codeValue = uuid.replace(/[^0-9]/g, '').substring(0, 13)
 
-      setTimeout(async () => {
-        const svg = document.querySelector('#barcode-svg')
-        if (!svg) {
-          console.error('SVG element not found!')
-          return reject('SVG not found')
-        }
+    setBarcode(codeValue)
+    setFormData((prev) => ({ ...prev, barcodeId: codeValue }))
 
-        const svgData = new XMLSerializer().serializeToString(svg)
-        const svgBlob = new Blob([svgData], {
-          type: 'image/svg+xml;charset=utf-8',
-        })
-        const storage = getStorage()
-        const barcodeRef = storageRef(
-          storage,
-          `barcode-images/${numericPart}.svg`
-        )
-
-        try {
-          await uploadBytes(barcodeRef, svgBlob)
-          const downloadURL = await getDownloadURL(barcodeRef)
-          setFormData((prev) => ({ ...prev, barcodeImg: downloadURL }))
-          resolve()
-        } catch (err) {
-          reject(err)
-        }
-      }, 100)
+    const qrDataUrl = await QRCode.toDataURL(codeValue, {
+      width: 320,
+      margin: 1,
+      errorCorrectionLevel: 'M',
     })
+
+    const response = await fetch(qrDataUrl)
+    const qrBlob = await response.blob()
+
+    const storage = getStorage()
+    const barcodeRef = storageRef(storage, `barcode-images/${codeValue}.png`)
+
+    await uploadBytes(barcodeRef, qrBlob)
+    const downloadURL = await getDownloadURL(barcodeRef)
+    setFormData((prev) => ({ ...prev, barcodeImg: downloadURL }))
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -231,7 +220,7 @@ export function AddItemDialog({
           <DialogHeader>
             <DialogTitle>Add New Inventory Item</DialogTitle>
             <DialogDescription>
-              Fill in the item details and click "Generate Barcode".
+              Fill in the item details and click "Generate QR Code".
             </DialogDescription>
           </DialogHeader>
 
@@ -393,7 +382,7 @@ export function AddItemDialog({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="barcodeId">
-                  Barcode ID (Automatically Generated)
+                  QR Code ID (Automatically Generated)
                 </Label>
                 <Input
                   id="barcodeId"
@@ -406,14 +395,14 @@ export function AddItemDialog({
 
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <Label>Barcode Sticker</Label>
+                <Label>QR Code Sticker</Label>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={generateBarcode}
                 >
-                  Generate Barcode
+                  Generate QR Code
                 </Button>
               </div>
 
@@ -425,7 +414,7 @@ export function AddItemDialog({
                 </div>
               ) : (
                 <div className="p-4 border rounded-md flex justify-center items-center h-20 text-muted-foreground">
-                  Click generate to create a barcode
+                  Click generate to create a QR code
                 </div>
               )}
             </div>
