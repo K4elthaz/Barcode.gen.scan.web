@@ -79,17 +79,42 @@ export function InventoryTable({ items }: InventoryTableProps) {
     }
   }
 
-  const handlePrint = (barcodeId: string) => {
+  const handlePrint = (barcodeId: string, sku: string) => {
     const printWindow = window.open('', '_blank', 'width=900,height=600')
     if (printWindow) {
       printWindow.document.write(`
       <html>
         <head>
           <title>Print QR Code</title>
+          <style>
+            body {
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              height: 100vh;
+              margin: 0;
+              font-family: Arial, sans-serif;
+            }
+            #container {
+              text-align: center;
+            }
+            #qrcode {
+              margin-bottom: 20px;
+            }
+            #sku {
+              font-size: 18px;
+              font-weight: bold;
+              letter-spacing: 2px;
+              margin-top: 10px;
+            }
+          </style>
         </head>
-        <body style="display:flex;justify-content:center;align-items:center;height:100vh;">
-          <div id="qrcode"></div>
-          <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+        <body>
+          <div id="container">
+            <div id="qrcode"></div>
+            <div id="sku">SKU: ${sku}</div>
+          </div>
+          <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><\/script>
           <script>
             window.onload = function() {
               new QRCode(document.getElementById("qrcode"), {
@@ -102,7 +127,7 @@ export function InventoryTable({ items }: InventoryTableProps) {
                 window.print();
               }, 250);
             }
-          </script>
+          <\/script>
         </body>
       </html>
     `)
@@ -174,7 +199,7 @@ export function InventoryTable({ items }: InventoryTableProps) {
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => handlePrint(item.barcodeId)}
+                    onClick={() => handlePrint(item.barcodeId, item.sku)}
                   >
                     <Printer className="h-4 w-4" />
                   </Button>
