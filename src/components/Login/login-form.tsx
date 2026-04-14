@@ -8,6 +8,7 @@ import { auth } from "@/lib/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { getErrorMessage } from "@/lib/errors";
 
 export function LoginForm({
   className,
@@ -25,15 +26,22 @@ export function LoginForm({
       // const user = userCredential.user;
 
       toast({
-        title: "Login Successful",
-        description: "Welcome back to EduSphere!",
+        title: "Signed in",
+        description: "Welcome back to the inventory dashboard.",
       });
 
       setEmail("");
       setPassword("");
       navigate("/main");
     } catch (error) {
-      console.error(error);
+      toast({
+        title: "Unable to sign in",
+        description: getErrorMessage(
+          error,
+          "Sign-in failed. Check your credentials and try again."
+        ),
+        variant: "destructive",
+      });
     }
   };
   return (

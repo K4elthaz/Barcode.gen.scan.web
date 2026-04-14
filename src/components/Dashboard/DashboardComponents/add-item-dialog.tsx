@@ -32,6 +32,8 @@ import QRCode from 'qrcode'
 import { getCategories } from '@/services/category-services'
 import { MapSelector } from '@/components/Map-selector'
 import { reverseGeocode } from '@/utils/geocode'
+import { useToast } from '@/hooks/use-toast'
+import { getErrorMessage } from '@/lib/errors'
 
 interface AddItemDialogProps {
   open: boolean
@@ -44,6 +46,7 @@ export function AddItemDialog({
   setOpen,
   onAddItem,
 }: AddItemDialogProps) {
+  const { toast } = useToast()
   const [formData, setFormData] = useState({
     productName: '',
     description: '',
@@ -139,7 +142,14 @@ export function AddItemDialog({
       const url = await getDownloadURL(imageRef)
       setFormData((prev) => ({ ...prev, itemImg: url }))
     } catch (err) {
-      console.error('Image upload failed', err)
+      toast({
+        title: 'Image upload failed',
+        description: getErrorMessage(
+          err,
+          'The item image could not be uploaded. Please try again.'
+        ),
+        variant: 'destructive',
+      })
     }
   }
 
@@ -159,7 +169,14 @@ export function AddItemDialog({
       try {
         await generateBarcode()
       } catch (err) {
-        console.error('Barcode generation failed:', err)
+        toast({
+          title: 'QR code generation failed',
+          description: getErrorMessage(
+            err,
+            'A QR code could not be generated for this item. Please try again.'
+          ),
+          variant: 'destructive',
+        })
         return
       }
     }
@@ -208,8 +225,19 @@ export function AddItemDialog({
 
       setBarcode('')
       setOpen(false)
+      toast({
+        title: 'Item added',
+        description: `${itemData.productName} was saved successfully.`,
+      })
     } catch (error) {
-      console.error('Error saving item to Firebase:', error)
+      toast({
+        title: 'Unable to save item',
+        description: getErrorMessage(
+          error,
+          'The item could not be saved. Please try again.'
+        ),
+        variant: 'destructive',
+      })
     }
   }
 

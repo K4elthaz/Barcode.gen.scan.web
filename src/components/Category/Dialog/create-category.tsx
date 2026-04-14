@@ -12,6 +12,7 @@ import { Plus } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { getErrorMessage, getRequiredFieldsMessage } from "@/lib/errors";
 import {
   checkIfCategoryExists,
   createCategory,
@@ -25,10 +26,16 @@ export default function CreateCategoryDialog() {
   const [categoryImage, setCategoryImage] = useState<File | null>(null);
 
   const handleCreateCategory = async () => {
-    if (!categoryName || !categoryDescription || !categoryImage) {
+    const missingFields = [
+      !categoryName.trim() ? "a category name" : null,
+      !categoryDescription.trim() ? "a category description" : null,
+      !categoryImage ? "a category image" : null,
+    ].filter(Boolean) as string[];
+
+    if (missingFields.length > 0) {
       toast({
-        title: "Error",
-        description: "Please fill in all fields.",
+        title: "Missing information",
+        description: getRequiredFieldsMessage(missingFields),
         variant: "destructive",
       });
       return;
@@ -39,26 +46,33 @@ export default function CreateCategoryDialog() {
 
       if (isDuplicate) {
         toast({
-          title: "Error",
-          description: "Category name already exists.",
+          title: "Category already exists",
+          description: "Choose a different category name and try again.",
           variant: "destructive",
         });
         return;
       }
 
-      await createCategory(categoryName, categoryDescription, categoryImage);
+      await createCategory(
+        categoryName,
+        categoryDescription,
+        categoryImage as File
+      );
       setCategoryName("");
       setCategoryDescription("");
       setCategoryImage(null);
       setIsDialogOpen(false);
       toast({
-        title: "Success",
-        description: "Category created successfully.",
+        title: "Category created",
+        description: `Saved ${categoryName.trim()} successfully.`,
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to create category.",
+        title: "Unable to create category",
+        description: getErrorMessage(
+          error,
+          "The category could not be created. Please try again."
+        ),
         variant: "destructive",
       });
     }

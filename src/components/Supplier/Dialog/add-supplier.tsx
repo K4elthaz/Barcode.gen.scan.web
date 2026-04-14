@@ -24,6 +24,7 @@ import {
   checkIfSupplierExists,
   addSupplier,
 } from "@/services/suppliers-services";
+import { getErrorMessage, getRequiredFieldsMessage } from "@/lib/errors";
 
 export default function AddSupplierDialog() {
   const { toast } = useToast();
@@ -46,19 +47,21 @@ export default function AddSupplierDialog() {
   }, []);
 
   const handleAddSupplier = async () => {
-    if (
-      !formData.name ||
-      !formData.shopName ||
-      !formData.category ||
-      !formData.description ||
-      !formData.phone ||
-      !formData.email ||
-      !formData.address ||
-      !formData.image
-    ) {
+    const missingFields = [
+      !formData.name.trim() ? "a supplier name" : null,
+      !formData.shopName.trim() ? "a shop name" : null,
+      !formData.category ? "a category" : null,
+      !formData.description.trim() ? "a description" : null,
+      !formData.phone.trim() ? "a phone number" : null,
+      !formData.email.trim() ? "an email address" : null,
+      !formData.address.trim() ? "an address" : null,
+      !formData.image ? "a supplier image" : null,
+    ].filter(Boolean) as string[];
+
+    if (missingFields.length > 0) {
       toast({
-        title: "Error",
-        description: "Please fill in all fields.",
+        title: "Missing information",
+        description: getRequiredFieldsMessage(missingFields),
         variant: "destructive",
       });
       return;
@@ -68,8 +71,8 @@ export default function AddSupplierDialog() {
       const isDuplicate = await checkIfSupplierExists(formData.name);
       if (isDuplicate) {
         toast({
-          title: "Error",
-          description: "Supplier name already exists.",
+          title: "Supplier already exists",
+          description: "Use a different supplier name and try again.",
           variant: "destructive",
         });
         return;
@@ -83,7 +86,7 @@ export default function AddSupplierDialog() {
         formData.phone,
         formData.email,
         formData.address,
-        formData.image
+        formData.image as File
       );
       setFormData({
         name: "",
@@ -97,13 +100,16 @@ export default function AddSupplierDialog() {
       });
       setIsDialogOpen(false);
       toast({
-        title: "Success",
-        description: "Supplier created successfully.",
+        title: "Supplier added",
+        description: `${formData.name.trim()} was saved successfully.`,
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to create supplier.",
+        title: "Unable to add supplier",
+        description: getErrorMessage(
+          error,
+          "The supplier could not be created. Please try again."
+        ),
         variant: "destructive",
       });
     }
