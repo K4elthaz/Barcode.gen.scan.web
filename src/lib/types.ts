@@ -17,5 +17,6 @@ export interface InventoryItem {
   location: {
     lat: number;
     lng: number;
-  }; 
+  };
+  address?: string;
 }

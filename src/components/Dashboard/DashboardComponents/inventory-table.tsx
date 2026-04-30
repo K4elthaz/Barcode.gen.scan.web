@@ -15,8 +15,8 @@ import { Input } from '@/components/ui/input'
 import { Trash2, Printer } from 'lucide-react'
 import { ref, remove } from 'firebase/database'
 import { database } from '@/lib/firebase'
-import { reverseGeocode } from '@/utils/geocode'
-import { useEffect, useMemo, useState } from 'react'
+import { formatCoordinates } from '@/utils/geocode'
+import { useMemo, useState } from 'react'
 
 interface InventoryTableProps {
   items: InventoryItem[]
@@ -25,58 +25,8 @@ interface InventoryTableProps {
 const PAGE_SIZE = 10
 
 export function InventoryTable({ items }: InventoryTableProps) {
-  const [addresses, setAddresses] = useState<Record<string, string>>({})
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
-
-  useEffect(() => {
-    const fetchAddresses = async () => {
-      const results: Record<string, string> = {}
-
-      for (const item of items) {
-        console.log('[InventoryTable] Item location:', {
-          id: item.id,
-          location: item.location,
-        })
-
-        if (item.location?.lat && item.location?.lng) {
-          try {
-            console.log(
-              `[InventoryTable] Reverse geocoding ${item.id}:`,
-              item.location.lat,
-              item.location.lng
-            )
-
-            const address = await reverseGeocode(
-              item.location.lat,
-              item.location.lng
-            )
-
-            console.log(
-              `[InventoryTable] Resolved address for ${item.id}:`,
-              address
-            )
-
-            results[item.id] = address
-          } catch (error) {
-            console.error(
-              `[InventoryTable] Failed to reverse geocode ${item.id}:`,
-              error
-            )
-            results[item.id] = 'Unknown location'
-          }
-        } else {
-          console.warn(`[InventoryTable] No valid location for item ${item.id}`)
-        }
-      }
-
-      setAddresses(results)
-    }
-
-    if (items.length > 0) {
-      fetchAddresses()
-    }
-  }, [items])
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this item?')) {
@@ -216,23 +166,11 @@ export function InventoryTable({ items }: InventoryTableProps) {
                   <TableCell>{item.user}</TableCell>
                   <TableCell>{item.status}</TableCell>
                   <TableCell>
-                    {(() => {
-                      const value =
-                        addresses[item.id] ??
-                        (item.location?.lat !== undefined &&
-                        item.location?.lng !== undefined
-                          ? `${item.location.lat.toFixed(
-                              5
-                            )}, ${item.location.lng.toFixed(5)}`
-                          : 'No location')
-
-                      console.log('[InventoryTable] Rendered location:', {
-                        id: item.id,
-                        value,
-                      })
-
-                      return value
-                    })()}
+                    {item.address ??
+                      (item.location?.lat !== undefined &&
+                      item.location?.lng !== undefined
+                        ? formatCoordinates(item.location.lat, item.location.lng)
+                        : 'No location')}
                   </TableCell>
 
                   <TableCell>

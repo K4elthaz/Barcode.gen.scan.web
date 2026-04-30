@@ -47,6 +47,7 @@ export function AddItemDialog({
   onAddItem,
 }: AddItemDialogProps) {
   const { toast } = useToast()
+  const [selectedCategoryId, setSelectedCategoryId] = useState('')
   const [formData, setFormData] = useState({
     productName: '',
     description: '',
@@ -154,7 +155,13 @@ export function AddItemDialog({
   }
 
   const handleCategoryChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, category: value }))
+    const selectedCategory = categories.find((category) => category.id === value)
+
+    setSelectedCategoryId(value)
+    setFormData((prev) => ({
+      ...prev,
+      category: selectedCategory?.name ?? '',
+    }))
   }
 
   const handleStatusChange = (value: string) => {
@@ -222,6 +229,7 @@ export function AddItemDialog({
         user: '',
         location: { lat: 0, lng: 0 },
       })
+      setSelectedCategoryId('')
 
       setBarcode('')
       setOpen(false)
@@ -287,7 +295,7 @@ export function AddItemDialog({
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
                 <Select
-                  value={formData.category}
+                  value={selectedCategoryId}
                   onValueChange={handleCategoryChange}
                 >
                   <SelectTrigger>
@@ -295,7 +303,7 @@ export function AddItemDialog({
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.name}>
+                      <SelectItem key={category.id} value={category.id}>
                         {category.name}
                       </SelectItem>
                     ))}

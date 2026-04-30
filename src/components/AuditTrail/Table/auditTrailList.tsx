@@ -19,7 +19,7 @@ import {
   fetchAuditTrails,
   AuditTrailItem,
 } from '@/services/auditTrail-services'
-import { reverseGeocode } from '@/utils/geocode'
+import { formatCoordinates } from '@/utils/geocode'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Activity, MapPinned, Search, ShieldCheck, TimerReset } from 'lucide-react'
@@ -110,16 +110,7 @@ export default function AuditTrailListTable() {
 
   useEffect(() => {
     fetchAuditTrails(async (trails) => {
-      const withLocations = await Promise.all(
-        trails.map(async (trail) => {
-          const locationName = await reverseGeocode(
-            trail.latitude,
-            trail.longitude
-          )
-          return { ...trail, locationName }
-        })
-      )
-      setAuditData(withLocations)
+      setAuditData(trails)
     })
   }, [])
 
@@ -381,7 +372,9 @@ export default function AuditTrailListTable() {
                         </TableCell>
 
                         <TableCell className="whitespace-normal break-words text-muted-foreground">
-                          {item.address ?? item.locationName ?? '-'}
+                          {item.address ??
+                            item.locationName ??
+                            formatCoordinates(item.latitude, item.longitude)}
                         </TableCell>
                       </TableRow>
                     )
