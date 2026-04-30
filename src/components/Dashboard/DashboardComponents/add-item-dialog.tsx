@@ -34,6 +34,10 @@ import { MapSelector } from '@/components/Map-selector'
 import { reverseGeocode } from '@/utils/geocode'
 import { useToast } from '@/hooks/use-toast'
 import { getErrorMessage } from '@/lib/errors'
+import {
+  DEFAULT_ITEM_LOCATION,
+  isAddItemFormValid,
+} from './add-item-validation.ts'
 
 interface AddItemDialogProps {
   open: boolean
@@ -63,7 +67,7 @@ export function AddItemDialog({
     barcodeImg: '',
     status: '',
     user: '',
-    location: { lat: 0, lng: 0 },
+    location: DEFAULT_ITEM_LOCATION,
   })
 
   const [barcode, setBarcode] = useState('')
@@ -73,29 +77,6 @@ export function AddItemDialog({
     const unsubscribe = getCategories(setCategories)
     return () => unsubscribe()
   }, [])
-
-  // inside AddItemDialog
-
-  // helper: check required fields
-  const isFormValid = (): boolean => {
-    return (
-      formData.productName.trim() !== '' &&
-      formData.sku.trim() !== '' &&
-      formData.category.trim() !== '' &&
-      formData.unitMeasure.trim() !== '' &&
-      formData.purchasePrice > 0 &&
-      formData.sellingPrice > 0 &&
-      formData.quantity > 0 &&
-      formData.supplierInfo.trim() !== '' &&
-      formData.itemImg.trim() !== '' &&
-      formData.status.trim() !== '' &&
-      formData.user.trim() !== '' &&
-      formData.location.lat !== 0 &&
-      formData.location.lng !== 0 &&
-      !!formData.barcodeId &&
-      !!formData.barcodeImg
-    )
-  }
 
   const generateBarcode = async (): Promise<void> => {
     const uuid = uuidv4()
@@ -227,7 +208,7 @@ export function AddItemDialog({
         barcodeImg: '',
         status: '',
         user: '',
-        location: { lat: 0, lng: 0 },
+        location: DEFAULT_ITEM_LOCATION,
       })
       setSelectedCategoryId('')
 
@@ -401,7 +382,7 @@ export function AddItemDialog({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="itemImg">Upload Item Image</Label>
+                <Label htmlFor="itemImg">Upload Item Image (Optional)</Label>
                 <Input
                   id="itemImg"
                   type="file"
@@ -464,7 +445,7 @@ export function AddItemDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={!isFormValid()}>
+            <Button type="submit" disabled={!isAddItemFormValid(formData)}>
               Add Item
             </Button>
           </DialogFooter>
