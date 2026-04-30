@@ -78,12 +78,12 @@ export function AddItemDialog({
     return () => unsubscribe()
   }, [])
 
-  const generateBarcode = async (): Promise<void> => {
+  const generateBarcode = async (): Promise<{
+    barcodeId: string
+    barcodeImg: string
+  }> => {
     const uuid = uuidv4()
     const codeValue = uuid.replace(/[^0-9]/g, '').substring(0, 13)
-
-    setBarcode(codeValue)
-    setFormData((prev) => ({ ...prev, barcodeId: codeValue }))
 
     const qrDataUrl = await QRCode.toDataURL(codeValue, {
       width: 320,
@@ -99,7 +99,18 @@ export function AddItemDialog({
 
     await uploadBytes(barcodeRef, qrBlob)
     const downloadURL = await getDownloadURL(barcodeRef)
-    setFormData((prev) => ({ ...prev, barcodeImg: downloadURL }))
+
+    setBarcode(codeValue)
+    setFormData((prev) => ({
+      ...prev,
+      barcodeId: codeValue,
+      barcodeImg: downloadURL,
+    }))
+
+    return {
+      barcodeId: codeValue,
+      barcodeImg: downloadURL,
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -152,10 +163,14 @@ export function AddItemDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Wait for barcode generation if not already done
+    let barcodeId = barcode
+    let barcodeImg = formData.barcodeImg
+
     if (!barcode || !formData.barcodeImg) {
       try {
-        await generateBarcode()
+        const generatedBarcode = await generateBarcode()
+        barcodeId = generatedBarcode.barcodeId
+        barcodeImg = generatedBarcode.barcodeImg
       } catch (err) {
         toast({
           title: 'QR code generation failed',
@@ -181,8 +196,9 @@ export function AddItemDialog({
 
     const itemData = {
       ...formData,
-      barcodeId: barcode,
-      address, // store the human-readable address
+      barcodeId,
+      barcodeImg,
+      address,
     }
 
     try {
@@ -191,16 +207,14 @@ export function AddItemDialog({
 
       onAddItem?.(itemData)
 
-      // Reset form
-      // Reset form
       setFormData({
         productName: '',
         description: '',
         category: '',
         unitMeasure: '',
-        purchasePrice: 0, // 👈 number, not ''
-        sellingPrice: 0, // 👈 number, not ''
-        quantity: 0, // 👈 number
+        purchasePrice: 0,
+        sellingPrice: 0,
+        quantity: 0,
         supplierInfo: '',
         itemImg: '',
         sku: '',
@@ -232,212 +246,282 @@ export function AddItemDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-[90vw] lg:max-w-[700px]">
-        <form onSubmit={handleSubmit} className="overflow-y-auto max-h-[85vh]">
-          <DialogHeader>
-            <DialogTitle>Add New Inventory Item</DialogTitle>
-            <DialogDescription>
-              Fill in the item details and click "Generate QR Code".
+      <DialogContent className="max-h-[92vh] max-w-[94vw] overflow-hidden p-0 sm:max-w-3xl lg:max-w-5xl">
+        <form onSubmit={handleSubmit} className="flex max-h-[92vh] flex-col">
+          <DialogHeader className="border-b border-border/60 px-6 py-5">
+            <DialogTitle className="text-xl">Add New Inventory Item</DialogTitle>
+            <DialogDescription className="text-sm">
+              Enter item details, assign location, and generate a QR code.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="productName">Product Name</Label>
-                <Input
-                  id="productName"
-                  value={formData.productName}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sku">SKU</Label>
-                <Input
-                  id="sku"
-                  value={formData.sku}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Input
-                id="description"
-                value={formData.description}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Select
-                  value={selectedCategoryId}
-                  onValueChange={handleCategoryChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="unitMeasure">Unit Measure</Label>
-                <Input
-                  id="unitMeasure"
-                  value={formData.unitMeasure}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="purchasePrice">Purchase Price</Label>
-                <Input
-                  id="purchasePrice"
-                  type="number"
-                  min="0"
-                  value={formData.purchasePrice}
-                  onChange={handleChange}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sellingPrice">Selling Price</Label>
-                <Input
-                  id="sellingPrice"
-                  type="number"
-                  min="0"
-                  value={formData.sellingPrice}
-                  onChange={handleChange}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="quantity">Quantity</Label>
-                <Input
-                  id="quantity"
-                  type="number"
-                  min="0"
-                  value={formData.quantity}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="supplierInfo">Supplier Info</Label>
-                <Input
-                  id="supplierInfo"
-                  value={formData.supplierInfo}
-                  onChange={handleChange}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="user">User</Label>
-                <Input
-                  id="user"
-                  value={formData.user}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Select Location</Label>
-                <MapSelector
-                  location={formData.location}
-                  onLocationChange={(loc) =>
-                    setFormData((prev) => ({ ...prev, location: loc }))
-                  }
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={handleStatusChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Available">Available</SelectItem>
-                    <SelectItem value="Out of Stock">Out of Stock</SelectItem>
-                    <SelectItem value="Discontinued">Discontinued</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="itemImg">Upload Item Image (Optional)</Label>
-                <Input
-                  id="itemImg"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                />
-                {formData.itemImg && (
-                  <img
-                    src={formData.itemImg}
-                    alt="Uploaded Item"
-                    className="max-h-32 rounded-md mt-2"
-                  />
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="barcodeId">
-                  QR Code ID (Automatically Generated)
-                </Label>
-                <Input
-                  id="barcodeId"
-                  value={formData.barcodeId}
-                  onChange={handleChange}
-                  disabled
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>QR Code Sticker</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={generateBarcode}
-                >
-                  Generate QR Code
-                </Button>
-              </div>
-
-              {barcode ? (
-                <div className="p-4 border rounded-md flex justify-center">
-                  <div id="barcode-svg">
-                    <BarcodeDisplay value={barcode} />
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+              <div className="space-y-5">
+                <section className="rounded-lg border border-border/60 p-4">
+                  <div className="mb-4">
+                    <h3 className="text-sm font-semibold">Item Details</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Basic product identity and classification.
+                    </p>
                   </div>
-                </div>
-              ) : (
-                <div className="p-4 border rounded-md flex justify-center items-center h-20 text-muted-foreground">
-                  Click generate to create a QR code
-                </div>
-              )}
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="productName">Product Name</Label>
+                      <Input
+                        id="productName"
+                        value={formData.productName}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="sku">SKU</Label>
+                      <Input
+                        id="sku"
+                        value={formData.sku}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label htmlFor="description">Description</Label>
+                      <Input
+                        id="description"
+                        value={formData.description}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="category">Category</Label>
+                      <Select
+                        value={selectedCategoryId}
+                        onValueChange={handleCategoryChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="unitMeasure">Unit Measure</Label>
+                      <Input
+                        id="unitMeasure"
+                        value={formData.unitMeasure}
+                        onChange={handleChange}
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                <section className="rounded-lg border border-border/60 p-4">
+                  <div className="mb-4">
+                    <h3 className="text-sm font-semibold">Stock and Ownership</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Pricing, quantity, supplier, user, and status.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="purchasePrice">Purchase Price</Label>
+                      <div className="relative">
+                        <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground">
+                          PHP
+                        </span>
+                        <Input
+                          id="purchasePrice"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          inputMode="decimal"
+                          value={formData.purchasePrice}
+                          onChange={handleChange}
+                          className="pl-12 text-right tabular-nums"
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="sellingPrice">Selling Price</Label>
+                      <div className="relative">
+                        <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground">
+                          PHP
+                        </span>
+                        <Input
+                          id="sellingPrice"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          inputMode="decimal"
+                          value={formData.sellingPrice}
+                          onChange={handleChange}
+                          className="pl-12 text-right tabular-nums"
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="quantity">Quantity</Label>
+                      <div className="relative">
+                        <Input
+                          id="quantity"
+                          type="number"
+                          min="0"
+                          step="1"
+                          inputMode="numeric"
+                          value={formData.quantity}
+                          onChange={handleChange}
+                          className="pr-14 text-right tabular-nums"
+                          placeholder="0"
+                        />
+                        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground">
+                          pcs
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="supplierInfo">Supplier Info</Label>
+                      <Input
+                        id="supplierInfo"
+                        value={formData.supplierInfo}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="user">User</Label>
+                      <Input
+                        id="user"
+                        value={formData.user}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="status">Status</Label>
+                      <Select
+                        value={formData.status}
+                        onValueChange={handleStatusChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Available">Available</SelectItem>
+                          <SelectItem value="Out of Stock">Out of Stock</SelectItem>
+                          <SelectItem value="Discontinued">
+                            Discontinued
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="rounded-lg border border-border/60 p-4">
+                  <div className="mb-4">
+                    <h3 className="text-sm font-semibold">Location</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Pick item storage location from map.
+                    </p>
+                  </div>
+                  <div className="overflow-hidden rounded-md border border-border/60">
+                    <MapSelector
+                      location={formData.location}
+                      onLocationChange={(loc) =>
+                        setFormData((prev) => ({ ...prev, location: loc }))
+                      }
+                    />
+                  </div>
+                </section>
+              </div>
+
+              <aside className="space-y-5 lg:sticky lg:top-0 lg:self-start">
+                <section className="rounded-lg border border-border/60 p-4">
+                  <div className="mb-4">
+                    <h3 className="text-sm font-semibold">Item Image</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Optional visual reference.
+                    </p>
+                  </div>
+                  <div className="space-y-3">
+                    <Input
+                      id="itemImg"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                    />
+                    <div className="flex h-40 items-center justify-center overflow-hidden rounded-md border border-dashed border-border bg-muted/30">
+                      {formData.itemImg ? (
+                        <img
+                          src={formData.itemImg}
+                          alt="Uploaded Item"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-sm text-muted-foreground">
+                          No image selected
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </section>
+
+                <section className="rounded-lg border border-border/60 p-4">
+                  <div className="mb-4 flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-sm font-semibold">QR Code</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Auto-generated item code.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={generateBarcode}
+                    >
+                      Generate
+                    </Button>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="barcodeId">QR Code ID</Label>
+                      <Input
+                        id="barcodeId"
+                        value={formData.barcodeId}
+                        onChange={handleChange}
+                        disabled
+                      />
+                    </div>
+
+                    <div className="flex min-h-44 items-center justify-center rounded-md border border-dashed border-border bg-muted/30 p-4">
+                      {barcode ? (
+                        <div id="barcode-svg" className="rounded-md bg-white p-3">
+                          <BarcodeDisplay value={barcode} />
+                        </div>
+                      ) : (
+                        <span className="text-center text-sm text-muted-foreground">
+                          Generate QR code before saving.
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </section>
+              </aside>
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="border-t border-border/60 bg-background px-6 py-4">
             <Button
               type="button"
               variant="outline"

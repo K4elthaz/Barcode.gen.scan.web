@@ -22,7 +22,22 @@ import {
 import { formatCoordinates } from '@/utils/geocode'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Activity, MapPinned, Search, ShieldCheck, TimerReset } from 'lucide-react'
+import { Label } from '@/components/ui/label'
+import {
+  Activity,
+  ArrowDown,
+  ArrowUp,
+  Clock,
+  MapPin,
+  MapPinned,
+  Minus,
+  Package,
+  Search,
+  ShieldCheck,
+  TimerReset,
+  UserRound,
+  X,
+} from 'lucide-react'
 
 const PAGE_SIZE = 10
 
@@ -229,6 +244,30 @@ export default function AuditTrailListTable() {
     }).format(new Date(timestamp))
   }
 
+  const getQuantityDeltaTone = (delta: number) => {
+    if (delta > 0) {
+      return 'border-primary/20 bg-primary/10 text-primary'
+    }
+
+    if (delta < 0) {
+      return 'border-destructive/20 bg-destructive/10 text-destructive'
+    }
+
+    return 'border-border/60 bg-muted text-muted-foreground'
+  }
+
+  const getQuantityDeltaIcon = (delta: number) => {
+    if (delta > 0) {
+      return <ArrowUp className="h-3.5 w-3.5" />
+    }
+
+    if (delta < 0) {
+      return <ArrowDown className="h-3.5 w-3.5" />
+    }
+
+    return <Minus className="h-3.5 w-3.5" />
+  }
+
   return (
     <div className="space-y-6">
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -261,8 +300,12 @@ export default function AuditTrailListTable() {
             </CardDescription>
           </div>
 
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="relative w-full lg:max-w-sm">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div className="space-y-2">
+              <Label className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                Search records
+              </Label>
+              <div className="relative w-full lg:w-[420px]">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={query}
@@ -271,12 +314,30 @@ export default function AuditTrailListTable() {
                   setPage(1)
                 }}
                 placeholder="Search item, user, status, or address"
-                className="pl-9"
+                className="h-10 pl-9 pr-10"
               />
+                {query && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 p-0"
+                    onClick={() => {
+                      setQuery('')
+                      setPage(1)
+                    }}
+                    aria-label="Clear search"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Date Added</span>
+            <div className="space-y-2">
+              <Label className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                Date added
+              </Label>
               <Select
                 value={dateSortOrder}
                 onValueChange={(value: 'desc' | 'asc') => {
@@ -284,7 +345,7 @@ export default function AuditTrailListTable() {
                   setPage(1)
                 }}
               >
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="h-10 w-full lg:w-[210px]">
                   <SelectValue placeholder="Sort by date" />
                 </SelectTrigger>
                 <SelectContent>
@@ -299,15 +360,15 @@ export default function AuditTrailListTable() {
         <CardContent className="p-6">
           <div className="overflow-hidden rounded-2xl border border-border/60">
             <Table className="text-sm">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="min-w-[160px]">Item</TableHead>
-                  <TableHead className="min-w-[120px]">User</TableHead>
-                  <TableHead className="min-w-[140px]">Logged</TableHead>
-                  <TableHead className="min-w-[130px]">Quantity Change</TableHead>
-                  <TableHead className="min-w-[200px]">Default Location</TableHead>
-                  <TableHead className="min-w-[150px]">Location Status</TableHead>
-                  <TableHead className="min-w-[220px]">Current Address</TableHead>
+              <TableHeader className="bg-muted/40">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="min-w-[220px] px-4 py-3">Item</TableHead>
+                  <TableHead className="min-w-[150px] px-4 py-3">User</TableHead>
+                  <TableHead className="min-w-[180px] px-4 py-3">Logged</TableHead>
+                  <TableHead className="min-w-[170px] px-4 py-3">Quantity</TableHead>
+                  <TableHead className="min-w-[240px] px-4 py-3">Default Location</TableHead>
+                  <TableHead className="min-w-[180px] px-4 py-3">Location Status</TableHead>
+                  <TableHead className="min-w-[260px] px-4 py-3">Current Address</TableHead>
                 </TableRow>
               </TableHeader>
 
@@ -318,63 +379,82 @@ export default function AuditTrailListTable() {
 
                     return (
                       <TableRow key={item.uniqueID} className="align-top">
-                        <TableCell>
-                          <div className="space-y-1">
-                            <p className="font-medium">{item.productName ?? '-'}</p>
-                            <p className="text-xs text-muted-foreground">ID: {item.id}</p>
+                        <TableCell className="px-4 py-4">
+                          <div className="flex gap-3">
+                            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                              <Package className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0 space-y-1">
+                              <p className="font-medium leading-5">
+                                {item.productName ?? '-'}
+                              </p>
+                              <p className="truncate font-mono text-xs text-muted-foreground">
+                                {item.id}
+                              </p>
+                            </div>
                           </div>
                         </TableCell>
 
-                        <TableCell>{item.user ?? '-'}</TableCell>
+                        <TableCell className="px-4 py-4">
+                          <span className="inline-flex max-w-[140px] items-center gap-2 rounded-md border border-border/60 bg-background px-2.5 py-1 text-sm">
+                            <UserRound className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            <span className="truncate">{item.user ?? '-'}</span>
+                          </span>
+                        </TableCell>
 
-                        <TableCell>
-                          <div className="space-y-1">
-                            <p>{formatDate(item)}</p>
-                            <p className="text-xs text-muted-foreground">
+                        <TableCell className="px-4 py-4">
+                          <div className="flex gap-2">
+                            <Clock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                            <div className="space-y-1">
+                              <p className="font-medium leading-5">{formatDate(item)}</p>
+                              <p className="text-xs text-muted-foreground">
                               {item.timeStamp ?? 'No raw timestamp'}
-                            </p>
+                              </p>
+                            </div>
                           </div>
                         </TableCell>
 
-                        <TableCell>
+                        <TableCell className="px-4 py-4">
                           <div className="space-y-1">
                             <p className="font-medium">
                               {item.previousQuantity} to {item.newQuantity}
                             </p>
-                            <p
-                              className={
-                                quantityDelta === 0
-                                  ? 'text-xs text-muted-foreground'
-                                  : quantityDelta > 0
-                                    ? 'text-xs font-medium text-primary'
-                                    : 'text-xs font-medium text-destructive'
-                              }
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${getQuantityDeltaTone(quantityDelta)}`}
                             >
+                              {getQuantityDeltaIcon(quantityDelta)}
                               {quantityDelta === 0
                                 ? 'No change'
                                 : quantityDelta > 0
                                   ? `+${quantityDelta} units`
                                   : `${quantityDelta} units`}
-                            </p>
+                            </span>
                           </div>
                         </TableCell>
 
-                        <TableCell className="whitespace-normal break-words text-muted-foreground">
+                        <TableCell className="whitespace-normal break-words px-4 py-4 text-muted-foreground">
                           {item.defaultAddress ?? '-'}
                         </TableCell>
 
-                        <TableCell>
+                        <TableCell className="px-4 py-4">
                           <span
-                            className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusTone(item.locationStatus ?? item.status)}`}
+                            className={`inline-flex max-w-[170px] rounded-full border px-2.5 py-1 text-xs font-medium leading-5 ${getStatusTone(item.locationStatus ?? item.status)}`}
                           >
-                            {item.locationStatus ?? item.status ?? 'Unknown location'}
+                            <span className="truncate">
+                              {item.locationStatus ?? item.status ?? 'Unknown location'}
+                            </span>
                           </span>
                         </TableCell>
 
-                        <TableCell className="whitespace-normal break-words text-muted-foreground">
-                          {item.address ??
-                            item.locationName ??
-                            formatCoordinates(item.latitude, item.longitude)}
+                        <TableCell className="px-4 py-4 text-muted-foreground">
+                          <div className="flex gap-2">
+                            <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+                            <span className="whitespace-normal break-words">
+                              {item.address ??
+                                item.locationName ??
+                                formatCoordinates(item.latitude, item.longitude)}
+                            </span>
+                          </div>
                         </TableCell>
                       </TableRow>
                     )
@@ -382,11 +462,16 @@ export default function AuditTrailListTable() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={7} className="py-10 text-center">
-                      <div className="space-y-2">
-                        <p className="font-medium">No audit trails found</p>
-                        <p className="text-sm text-muted-foreground">
+                      <div className="mx-auto flex max-w-sm flex-col items-center gap-3">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                          <Search className="h-5 w-5" />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="font-medium">No audit trails found</p>
+                          <p className="text-sm text-muted-foreground">
                           Try broader search or wait for new inventory activity.
-                        </p>
+                          </p>
+                        </div>
                       </div>
                     </TableCell>
                   </TableRow>
