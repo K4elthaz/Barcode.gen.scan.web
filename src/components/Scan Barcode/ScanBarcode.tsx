@@ -8,8 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast"
 import { getErrorMessage } from "@/lib/errors"
 import { InventoryItem } from "@/lib/types"
-import { ref, onValue, query, orderByChild, equalTo } from "firebase/database"
-import { database } from "@/lib/firebase"
+import { findItemByBarcode } from "@/services/items-services"
 import { Activity, QrCode, ScanLine, ShieldCheck } from "lucide-react"
 
 export default function Home() {
@@ -43,49 +42,40 @@ export default function Home() {
     },
   ]
 
-  const handleScan = (scannedCode: string) => {
-    if (!scannedCode) return
-  
-    const itemsRef = ref(database, "Items") // Make sure this path matches your DB structure
-    const itemsQuery = query(itemsRef, orderByChild("barcodeId"), equalTo(scannedCode))
-  
-    onValue(itemsQuery, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val()
-        const itemKey = Object.keys(data)[0]
-        const itemData = data[itemKey]
-  
-        const newItem: InventoryItem & { timestamp: Date } = {
-          ...itemData,
-          id: crypto.randomUUID(),
-          timestamp: new Date(),
+  const handleScan = async (scannedCode: string) => {
+      if (!scannedCode) return
+
+      try {
+        const item = await findItemByBarcode(scannedCode)
+
+        if (item) {
+          const newItem: InventoryItem & { timestamp: Date } = {
+            ...item,
+            id: crypto.randomUUID(),
+            timestamp: new Date(),
+          }
+
+          setScannedItems((prev) => [newItem, ...prev])
+        } else {
+          toast({
+            title: "Item not found",
+            description: `No inventory item matches code ${scannedCode}.`,
+            variant: "destructive",
+          })
         }
-        
-  
-        setScannedItems((prev) => [newItem, ...prev])
-      } else {
+      } catch (error) {
         toast({
-          title: "Item not found",
-          description: `No inventory item matches code ${scannedCode}.`,
+          title: "Scan failed",
+          description: getErrorMessage(
+            error,
+            "The scanned code could not be looked up. Please try again."
+          ),
           variant: "destructive",
         })
+      } finally {
+        setIsScanning(false)
       }
-  
-      setIsScanning(false)
-    }, (error) => {
-      toast({
-        title: "Scan failed",
-        description: getErrorMessage(
-          error,
-          "The scanned code could not be looked up. Please try again."
-        ),
-        variant: "destructive",
-      })
-      setIsScanning(false)
-    }, {
-      onlyOnce: true
-    })
-  }
+    }
 
   const handleDelete = (id: string) => {
     setScannedItems((prev) => prev.filter((item) => item.id !== id))

@@ -1,6 +1,5 @@
 // AuditTrailServices.ts
-import { database } from '@/lib/firebase'
-import { ref, onValue } from 'firebase/database'
+import { supabase } from "@/lib/supabase";
 
 // TypeScript type for audit trail item
 export interface AuditTrailItem {
@@ -20,28 +19,29 @@ export interface AuditTrailItem {
   address?: string
 }
 
-// Fetch all audit trails from Firebase
-export function fetchAuditTrails(callback: (data: AuditTrailItem[]) => void) {
-  const auditTrailRef = ref(database, 'AuditTrail')
+// Fetch all audit trails from Supabase
+export async function fetchAuditTrails(): Promise<AuditTrailItem[]> {
+  const { data, error } = await supabase
+    .from("audit_trails")
+    .select("*")
+    .order("created_at", { ascending: false });
 
-  onValue(auditTrailRef, async (snapshot) => {
-    const trails: AuditTrailItem[] = []
+  if (error) throw error;
 
-    const data = snapshot.val()
-    if (!data) return callback([])
-
-    for (const id in data) {
-      const records = data[id]
-      for (const uniqueID in records) {
-        const entry = records[uniqueID]
-        trails.push({
-          id,
-          uniqueID,
-          ...entry,
-        })
-      }
-    }
-
-    callback(trails)
-  })
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    uniqueID: row.unique_id ?? row.id,
+    productName: row.product_name ?? "",
+    user: row.user ?? "",
+    latitude: Number(row.latitude) || 0,
+    longitude: Number(row.longitude) || 0,
+    timeStamp: row.time_stamp ?? "",
+    newQuantity: Number(row.new_quantity) || 0,
+    previousQuantity: Number(row.previous_quantity) || 0,
+    status: row.status ?? "",
+    locationName: row.location_name ?? undefined,
+    defaultAddress: row.default_address ?? undefined,
+    locationStatus: row.location_status ?? undefined,
+    address: row.address ?? undefined,
+  }));
 }

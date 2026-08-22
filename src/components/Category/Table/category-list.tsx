@@ -22,9 +22,26 @@ export default function CategoryListTable() {
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    const unsubscribe = getCategories(setCategoryList);
-    return () => unsubscribe();
-  }, []);
+      let active = true;
+
+      const loadCategories = () => {
+        getCategories()
+          .then((data) => {
+            if (active) setCategoryList(data);
+          })
+          .catch(() => {
+            if (active) setCategoryList([]);
+          });
+      };
+
+      window.addEventListener("categories-updated", loadCategories);
+      loadCategories();
+
+      return () => {
+        active = false;
+        window.removeEventListener("categories-updated", loadCategories);
+      };
+    }, []);
 
   const filteredCategories = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();

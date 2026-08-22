@@ -53,7 +53,7 @@ export function Header() {
             </BreadcrumbList>
           </Breadcrumb>
           <p className="text-xs text-muted-foreground">
-            Live inventory view for receiving, tracking, and audit work.
+            Inventory view for receiving, tracking, and audit work.
           </p>
         </div>
         <div className="ml-auto flex items-center gap-3">

@@ -7,8 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { InventoryTable } from "./inventory-table"
 import { AddItemDialog } from "./add-item-dialog"
 import type { InventoryItem } from "@/lib/types"
-import { ref, onValue } from "firebase/database"
-import { database } from "@/lib/firebase"
+import { getItems } from "@/services/items-services"
 
 export default function InventoryDashboard() {
   const [items, setItems] = useState<InventoryItem[]>([])
@@ -53,27 +52,26 @@ export default function InventoryDashboard() {
   ]
 
   useEffect(() => {
-    const inventoryRef = ref(database, "Items")
-    const unsubscribe = onValue(inventoryRef, (snapshot) => {
-      const data = snapshot.val()
-      if (data) {
-        const formatted = Object.entries(data).map(([id, item]: [string, any]) => ({
-          id,
-          ...item
-        })) as InventoryItem[]
-        setItems(formatted)
-      } else {
-        setItems([])
-      }
-    })
+    let active = true
 
-    return () => unsubscribe()
+    const loadItems = () => {
+      getItems()
+        .then((data) => {
+          if (active) setItems(data)
+        })
+        .catch(() => {
+          if (active) setItems([])
+        })
+    }
+
+    window.addEventListener("items-updated", loadItems)
+    loadItems()
+
+    return () => {
+      active = false
+      window.removeEventListener("items-updated", loadItems)
+    }
   }, [])
-
-  const addItem = (item: InventoryItem) => {
-    setItems((prev) => [...prev, item])
-    setOpen(false)
-  }
 
   return (
     <div className="space-y-6">
@@ -112,7 +110,7 @@ export default function InventoryDashboard() {
         </CardHeader>
         <CardContent className="p-6">
           <InventoryTable items={items} />
-          <AddItemDialog open={open} setOpen={setOpen} onAddItem={addItem} />
+          <AddItemDialog open={open} setOpen={setOpen} />
         </CardContent>
       </Card>
     </div>

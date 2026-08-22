@@ -124,10 +124,18 @@ export default function AuditTrailListTable() {
   const [query, setQuery] = useState('')
 
   useEffect(() => {
-    fetchAuditTrails(async (trails) => {
-      setAuditData(trails)
-    })
-  }, [])
+      let active = true
+      fetchAuditTrails()
+        .then((trails) => {
+          if (active) setAuditData(trails)
+        })
+        .catch(() => {
+          if (active) setAuditData([])
+        })
+      return () => {
+        active = false
+      }
+    }, [])
 
   const sortedData = useMemo(() => {
     return [...auditData].sort((left, right) => {

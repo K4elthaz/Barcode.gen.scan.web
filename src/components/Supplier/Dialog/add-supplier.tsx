@@ -12,6 +12,7 @@ import { Plus } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { getCategories } from "@/services/category-services";
+import type { Category } from "@/types/category";
 import {
   Select,
   SelectContent,
@@ -29,7 +30,7 @@ import { getErrorMessage, getRequiredFieldsMessage } from "@/lib/errors";
 export default function AddSupplierDialog() {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [formData, setFormData] = useState({
     name: "",
     shopName: "",
@@ -42,9 +43,16 @@ export default function AddSupplierDialog() {
   });
 
   useEffect(() => {
-    const unsubscribe = getCategories(setCategories);
-    return () => unsubscribe();
-  }, []);
+      let active = true;
+      getCategories()
+        .then((data) => {
+          if (active) setCategories(data);
+        })
+        .catch(() => {});
+      return () => {
+        active = false;
+      };
+    }, []);
 
   const handleAddSupplier = async () => {
     const missingFields = [

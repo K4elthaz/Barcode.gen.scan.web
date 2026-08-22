@@ -22,9 +22,26 @@ export default function SupplierListTable() {
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    const unsubscribe = getSuppliers(setSupplierList);
-    return () => unsubscribe();
-  }, []);
+      let active = true;
+
+      const loadSuppliers = () => {
+        getSuppliers()
+          .then((data) => {
+            if (active) setSupplierList(data);
+          })
+          .catch(() => {
+            if (active) setSupplierList([]);
+          });
+      };
+
+      window.addEventListener("suppliers-updated", loadSuppliers);
+      loadSuppliers();
+
+      return () => {
+        active = false;
+        window.removeEventListener("suppliers-updated", loadSuppliers);
+      };
+    }, []);
 
   const filteredSuppliers = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();

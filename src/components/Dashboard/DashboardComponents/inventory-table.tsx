@@ -24,8 +24,7 @@ import {
   UserRound,
   X,
 } from 'lucide-react'
-import { ref, remove } from 'firebase/database'
-import { database } from '@/lib/firebase'
+import { deleteItem } from '@/services/items-services'
 import { formatCoordinates } from '@/utils/geocode'
 import { useMemo, useState } from 'react'
 
@@ -72,7 +71,11 @@ export function InventoryTable({ items }: InventoryTableProps) {
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this item?')) {
-      await remove(ref(database, `Items/${id}`))
+      try {
+        await deleteItem(id)
+      } catch {
+        // the event-based refresh will show current state; ignore transient failure
+      }
     }
   }
 
@@ -111,7 +114,7 @@ export function InventoryTable({ items }: InventoryTableProps) {
             <div id="qrcode"></div>
             <div id="sku">SKU: ${sku}</div>
           </div>
-          <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><\/script>
+          <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
           <script>
             window.onload = function() {
               new QRCode(document.getElementById("qrcode"), {
@@ -124,7 +127,7 @@ export function InventoryTable({ items }: InventoryTableProps) {
                 window.print();
               }, 250);
             }
-          <\/script>
+          </script>
         </body>
       </html>
     `)

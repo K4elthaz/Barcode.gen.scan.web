@@ -13,6 +13,14 @@ interface BarcodeScannerProps {
   onError: (error: Error) => void
 }
 
+interface DetectedBarcode {
+  rawValue: string
+}
+
+interface BarcodeDetectorInstance {
+  detect: (source: HTMLVideoElement) => Promise<DetectedBarcode[]>
+}
+
 export function BarcodeScanner({ onScan, onError }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [error, setError] = useState<string | null>(null)
@@ -48,16 +56,18 @@ export function BarcodeScanner({ onScan, onError }: BarcodeScannerProps) {
           stream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: "environment" },
           })
-        } catch (mediaError: any) {
+        } catch (mediaError) {
           // Handle specific getUserMedia errors
-          if (mediaError.name === "NotAllowedError" || mediaError.name === "PermissionDeniedError") {
+          const err = mediaError as { name: string; message: string }
+
+          if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
             throw new Error("Camera access was denied. Please allow camera access in your browser settings.")
-          } else if (mediaError.name === "NotFoundError") {
+          } else if (err.name === "NotFoundError") {
             throw new Error("No camera found on this device. Try using manual entry instead.")
-          } else if (mediaError.name === "NotReadableError" || mediaError.name === "AbortError") {
+          } else if (err.name === "NotReadableError" || err.name === "AbortError") {
             throw new Error("Could not access your camera. It may be in use by another application.")
           } else {
-            throw new Error(`Camera error: ${mediaError.message || mediaError.name || "Unknown error"}`)
+            throw new Error(`Camera error: ${err.message || err.name || "Unknown error"}`)
           }
         }
 
@@ -74,9 +84,17 @@ export function BarcodeScanner({ onScan, onError }: BarcodeScannerProps) {
         }
 
         // Create QR detector
-        const detector = new (window as any).BarcodeDetector({
-          formats: ["qr_code"],
-        })
+        const BarcodeDetectorCtor = (window as unknown as {
+          BarcodeDetector?: new (options: { formats: string[] }) => BarcodeDetectorInstance
+        }).BarcodeDetector
+
+        if (!BarcodeDetectorCtor) {
+          setError("Barcode detection is not supported by this browser. Try using manual entry instead.")
+          setShowManualEntry(true)
+          return
+        }
+
+        const detector = new BarcodeDetectorCtor({ formats: ["qr_code"] })
 
         // Start detection loop
         const detectCodes = async () => {

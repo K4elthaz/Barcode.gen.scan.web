@@ -1,67 +1,63 @@
-import { ref, set, push, get, onValue } from "firebase/database";
-import { database, storage } from "@/lib/firebase";
-import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { supabase } from "@/lib/supabase";
+import type { Category } from "@/types/category";
 
+const BUCKET = "item-images";
+
+/** Emitted so category tables re-fetch after a create/update/delete. */
+export function notifyCategoriesUpdated() {
+  window.dispatchEvent(new CustomEvent("categories-updated"));
+}
 
 export const createCategory = async (
-    categoryName: string,
-    categoryDescription: string,
-    categoryImage: File,
+  categoryName: string,
+  categoryDescription: string,
+  categoryImage: File,
 ) => {
-    const createdAt = new Date().toLocaleString("en-US", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: true,
-      });
+  const uploadPath = `categories/${categoryImage.name}`;
 
-      const imageRef = storageRef(storage, `categories/${categoryImage.name}`);
-      const snapshot = await uploadBytes(imageRef, categoryImage);
-      const imageUrl = await getDownloadURL(snapshot.ref);
+  const { error: uploadError } = await supabase.storage
+    .from(BUCKET)
+    .upload(uploadPath, categoryImage, { upsert: true });
+  if (uploadError) throw uploadError;
 
-      const categoryRef = push(ref(database, "categories"));
-      return set (categoryRef, {
-        name: categoryName,
-        description: categoryDescription,
-        image: imageUrl,
-        createdAt: createdAt,
-      })
-}
+  const { data: urlData } = supabase.storage
+    .from(BUCKET)
+    .getPublicUrl(uploadPath);
+
+  const { error: insertError } = await supabase.from("categories").insert({
+    name: categoryName,
+    description: categoryDescription,
+    image: urlData.publicUrl,
+  });
+  if (insertError) throw insertError;
+
+  notifyCategoriesUpdated();
+};
 
 export const checkIfCategoryExists = async (categoryName: string) => {
-    const categoryRef = ref(database, "categories");
-    const snapshot = await get(categoryRef);
+  const { data, error } = await supabase
+    .from("categories")
+    .select("name")
+    .eq("name", categoryName)
+    .maybeSingle();
 
-    if (snapshot.exists()) {
-        const category = snapshot.val();
+  if (error) throw error;
+  return Boolean(data);
+};
 
-        return Object.values(category).some((category: any) => category.name === categoryName);
-    }
+export const getCategories = async (): Promise<Category[]> => {
+  const { data, error } = await supabase
+    .from("categories")
+    .select("*")
+    .order("created_at", { ascending: true });
 
-    return false;
-}
+  if (error) throw error;
 
-export const getCategories = (callback: (categories: any[]) => void) => {
-    const categoryRef = ref(database, "categories");
-
-    const unsubscribe = onValue(categoryRef, (snapshot) => {
-        if (snapshot.exists()) {
-            const categoriesData = snapshot.val();
-            const categoriesArray = Object.entries(categoriesData).map(
-                ([id, categories]) => ({
-                    id, 
-                    ...(categories as Record<string, any>),
-                })
-            );
-            callback(categoriesArray);
-        } else {
-            callback([]);
-        }
-    })
-
-    return () => unsubscribe();
-
-}
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    name: row.name,
+    description: row.description ?? "",
+    image: row.image ?? "",
+    createdAt: row.created_at,
+  }));
+};

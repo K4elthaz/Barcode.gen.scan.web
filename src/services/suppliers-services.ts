@@ -1,75 +1,78 @@
-import { ref, set, push, get, onValue } from "firebase/database";
-import { database, storage } from "@/lib/firebase";
-import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { supabase } from "@/lib/supabase";
+import type { Suppliers } from "@/types/suppliers";
+
+const BUCKET = "item-images";
+
+/** Emitted so supplier tables re-fetch after a create/update/delete. */
+export function notifySuppliersUpdated() {
+  window.dispatchEvent(new CustomEvent("suppliers-updated"));
+}
 
 export const addSupplier = async (
-    name: string,
-    shopName: string,
-    category: string,
-    description: string,
-    phone: string,
-    email: string,
-    address: string,
-    image: File
+  name: string,
+  shopName: string,
+  category: string,
+  description: string,
+  phone: string,
+  email: string,
+  address: string,
+  image: File,
 ) => {
-    const createdAt = new Date().toLocaleString("en-US", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: true,
-    });
-    
-    const imageRef = storageRef(storage, `suppliers/${image.name}`);
-    const snapshot = await uploadBytes(imageRef, image);
-    const imageUrl = await getDownloadURL(snapshot.ref);
-    
-    const supplierRef = push(ref(database, "suppliers"));
-    return set(supplierRef, {
-        name,
-        shopName,
-        category,
-        description,
-        phone,
-        email,
-        address,
-        image: imageUrl,
-        createdAt,
-    });
-}
+  const uploadPath = `suppliers/${image.name}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(BUCKET)
+    .upload(uploadPath, image, { upsert: true });
+  if (uploadError) throw uploadError;
+
+  const { data: urlData } = supabase.storage
+    .from(BUCKET)
+    .getPublicUrl(uploadPath);
+
+  const { error: insertError } = await supabase.from("suppliers").insert({
+    name,
+    shop_name: shopName,
+    category,
+    description,
+    phone,
+    email,
+    address,
+    image: urlData.publicUrl,
+  });
+  if (insertError) throw insertError;
+
+  notifySuppliersUpdated();
+};
 
 export const checkIfSupplierExists = async (name: string) => {
-    const supplierRef = ref(database, "suppliers");
-    const snapshot = await get(supplierRef);
+  const { data, error } = await supabase
+    .from("suppliers")
+    .select("name")
+    .eq("name", name)
+    .maybeSingle();
 
-    if (snapshot.exists()) {
-        const suppliers = snapshot.val();
+  if (error) throw error;
+  return Boolean(data);
+};
 
-        return Object.values(suppliers).some((supplier: any) => supplier.name === name);
-    }
+export const getSuppliers = async (): Promise<Suppliers[]> => {
+  const { data, error } = await supabase
+    .from("suppliers")
+    .select("*")
+    .order("created_at", { ascending: true });
 
-    return false;
-}
+  if (error) throw error;
 
-export const getSuppliers = (callback: (suppliers: any[]) => void) => {
-    const supplierRef = ref(database, "suppliers");
-
-    const unsubscribe = onValue(supplierRef, (snapshot) => {
-        if (snapshot.exists()) {
-            const suppliersData = snapshot.val();
-            const suppliersArray = Object.entries(suppliersData).map(
-                ([id, suppliers]) => ({
-                    id,
-                    ...(suppliers as Record<string, any>),
-                })
-            );
-            callback(suppliersArray);
-        } else {
-            callback([]);
-        }
-    });
-
-    return unsubscribe;
-}
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    name: row.name,
+    shopName: row.shop_name ?? "",
+    category: row.category ?? "",
+    description: row.description ?? "",
+    phone: row.phone ?? "",
+    email: row.email ?? "",
+    address: row.address ?? "",
+    image: row.image ?? "",
+    createdAt: row.created_at,
+  }));
+};
