@@ -4,6 +4,7 @@ import { ToastProvider } from "@/components/ui/toast";
 import { Toaster } from "@/components/ui/toaster";
 import LoginPage from "./Pages/Login";
 import MainPage from "./Pages/main-page";
+import OverviewDashboard from "./components/Dashboard/overview-dashboard";
 import DashboardPage from "./components/Dashboard/dashboard";
 import ClassroomPage from "./components/Scan Barcode/ScanBarcode";
 import UsersPage from "./components/Users/users";
@@ -19,7 +20,8 @@ function AppContent() {
       <Routes>
         <Route path="/" element={<LoginPage />} />
         <Route path="/main" element={<MainPage />}>
-          <Route index element={<DashboardPage />} />
+          <Route index element={<OverviewDashboard />} />
+          <Route path="inventory" element={<DashboardPage />} />
           <Route path="scanbarcode" element={<ClassroomPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="category" element={<CategoryPage />} />

@@ -1,11 +1,11 @@
 import {
+  LayoutDashboard,
   LayoutList,
   CircleUser,
   ScanBarcode,
-  Layers, SquareStack
+  Layers,
+  SquareStack,
 } from "lucide-react";
-// import { title } from "process";
-// import { href } from "react-router-dom";
 
 export const navData = {
   user: {
@@ -15,10 +15,15 @@ export const navData = {
   },
   navItems: [
     {
-      title: "Inventory",
+      title: "Overview",
       href: "/main",
-      icon: Layers,
+      icon: LayoutDashboard,
       isActive: true,
+    },
+    {
+      title: "Inventory",
+      href: "/main/inventory",
+      icon: Layers,
     },
     {
       title: "Scan Barcode",
@@ -39,6 +44,6 @@ export const navData = {
       title: "Audit Trail",
       href: "/main/auditTrail",
       icon: SquareStack,
-    }
+    },
   ],
 };
