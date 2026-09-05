@@ -26,26 +26,15 @@ import {
 } from 'lucide-react'
 import { deleteItem } from '@/services/items-services'
 import { formatCoordinates } from '@/utils/geocode'
+import { formatCurrency } from '@/utils/currency'
 import { useMemo, useState } from 'react'
+import { printInventoryReport } from './inventory-report'
 
 interface InventoryTableProps {
   items: InventoryItem[]
 }
 
 const PAGE_SIZE = 10
-
-const formatCurrency = (value: string | number) => {
-  const amount = Number(value)
-
-  if (!Number.isFinite(amount)) {
-    return 'PHP 0.00'
-  }
-
-  return new Intl.NumberFormat('en-PH', {
-    style: 'currency',
-    currency: 'PHP',
-  }).format(amount)
-}
 
 const getStatusTone = (status?: string) => {
   const normalized = (status ?? '').toLowerCase()
@@ -202,11 +191,23 @@ export function InventoryTable({ items }: InventoryTableProps) {
           </div>
         </div>
 
-        <div className="rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">
-            {filteredItems.length}
-          </span>{' '}
-          matching item{filteredItems.length === 1 ? '' : 's'}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">
+              {filteredItems.length}
+            </span>{' '}
+            matching item{filteredItems.length === 1 ? '' : 's'}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-[38px]"
+            disabled={filteredItems.length === 0}
+            onClick={() => printInventoryReport(filteredItems)}
+            aria-label="Print inventory report"
+          >
+            <Printer className="mr-2 h-4 w-4" /> Print Report
+          </Button>
         </div>
       </div>
 
